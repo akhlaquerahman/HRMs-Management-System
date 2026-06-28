@@ -1,0 +1,249 @@
+"use client";
+
+import { useAuthStore } from '@/store/authStore';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
+import { useState, useEffect } from 'react';
+import {
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  CalendarCheck,
+  Clock,
+  CalendarDays,
+  FileText,
+  DollarSign,
+  Receipt,
+  Gift,
+  TrendingDown,
+  UserPlus,
+  Video,
+  Target,
+  BarChart,
+  FileBadge,
+  Files,
+  Settings,
+  Shield,
+  Search,
+  Menu,
+  User,
+  FolderOpen,
+  Loader2,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Input } from '../ui/input';
+
+type MenuItem = {
+  title: string;
+  href: string;
+  icon: React.ElementType;
+};
+
+const menuConfig: MenuItem[] = [
+  {
+    title: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+  },
+  {
+    title: 'Employee Management',
+    href: '/dashboard/employee-management',
+    icon: Users,
+  },
+  {
+    title: 'Attendance',
+    href: '/dashboard/attendance',
+    icon: Clock,
+  },
+  {
+    title: 'Leave Management',
+    href: '/dashboard/leave-management',
+    icon: CalendarCheck,
+  },
+  {
+    title: 'Payroll',
+    href: '/dashboard/payroll',
+    icon: DollarSign,
+  },
+  {
+    title: 'Recruitment',
+    href: '/dashboard/recruitment',
+    icon: UserPlus,
+  },
+  {
+    title: 'Documents',
+    href: '/dashboard/documents',
+    icon: FolderOpen,
+  },
+  {
+    title: 'My Attendance',
+    href: '/dashboard/my-attendance',
+    icon: Clock,
+  },
+  {
+    title: 'Leave Request',
+    href: '/dashboard/leave-request',
+    icon: CalendarCheck,
+  },
+  {
+    title: 'Payslips',
+    href: '/dashboard/payslips',
+    icon: FileText,
+  },
+  {
+    title: 'My Documents',
+    href: '/dashboard/my-documents',
+    icon: FolderOpen,
+  },
+  {
+    title: 'Users',
+    href: '/dashboard/users',
+    icon: Users,
+  },
+  {
+    title: 'Roles',
+    href: '/dashboard/roles',
+    icon: Settings,
+  },
+
+  {
+    title: 'Audit Logs',
+    href: '/dashboard/audit-logs',
+    icon: Shield,
+  },
+  {
+    title: 'Profile',
+    href: '/dashboard/profile',
+    icon: User,
+  },
+];
+
+export default function Sidebar() {
+  const { user } = useAuthStore();
+  const { t } = useTranslation();
+  const pathname = usePathname();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Reset pending route when pathname changes (navigation completes)
+    setPendingRoute(null);
+  }, [pathname]);
+
+  // Filter links based on role
+  const userRole = user?.role?.toUpperCase() || '';
+  const isSuperAdmin = userRole === 'SUPER_ADMIN' || userRole === 'SUPER ADMIN';
+  const isHrAdmin = userRole === 'HR_ADMIN' || userRole === 'HR ADMIN';
+  
+  const filteredLinks = menuConfig.filter(link => {
+    const adminOnlyLinks = ['/dashboard/users', '/dashboard/roles', '/dashboard/audit-logs'];
+    const hrOnlyLinks = [
+      '/dashboard/employee-management', 
+      '/dashboard/attendance', 
+      '/dashboard/leave-management', 
+      '/dashboard/payroll', 
+      '/dashboard/recruitment', 
+      '/dashboard/documents'
+    ];
+    const employeeOnlyLinks = [
+      '/dashboard/my-attendance',
+      '/dashboard/leave-request',
+      '/dashboard/payslips',
+      '/dashboard/my-documents'
+    ];
+    
+    if (adminOnlyLinks.includes(link.href)) {
+      return isSuperAdmin;
+    }
+    
+    if (hrOnlyLinks.includes(link.href)) {
+      return isHrAdmin;
+    }
+
+    if (employeeOnlyLinks.includes(link.href)) {
+      return userRole === 'EMPLOYEE';
+    }
+    
+    return true;
+  });
+
+  const displayLinks = filteredLinks.filter((link) =>
+    t(link.title).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <aside className="w-64 border-r bg-card flex flex-col h-full shrink-0">
+      <div className="h-16 flex items-center px-6 border-b shrink-0">
+        <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-primary">
+          <Briefcase className="h-6 w-6" />
+          HRMS Pro
+        </div>
+      </div>
+      
+      <div className="p-4 shrink-0">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder={t("Search...")} 
+            className="pl-8 bg-muted/50" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 py-2 custom-scrollbar">
+        <nav className="space-y-1">
+          {displayLinks.map((item) => {
+            const isCurrent = pathname === item.href;
+            const isPending = pendingRoute === item.href;
+            const isActive = isCurrent || isPending;
+            
+            // If another route is pending, we reduce opacity of this item
+            const isOtherPending = pendingRoute !== null && !isPending;
+
+            return (
+              <Link 
+                key={item.title} 
+                href={item.href}
+                onClick={(e) => {
+                  if (pendingRoute) {
+                    e.preventDefault();
+                    return;
+                  }
+                  if (!isCurrent) {
+                    setPendingRoute(item.href);
+                  }
+                }}
+                className={cn(
+                  "flex items-center justify-between rounded-md px-3 py-2.5 text-base font-medium transition-all active:scale-[0.98]",
+                  isActive ? "bg-accent text-primary font-semibold shadow-sm" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  isOtherPending && "opacity-50 pointer-events-none"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon className={cn("h-4 w-4", isPending && "text-primary/70")} />
+                  {t(item.title)}
+                </div>
+                {isPending && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+      
+      <div className="p-4 border-t shrink-0 bg-muted/20">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+            {user?.firstName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+          </div>
+          <div className="flex flex-col truncate">
+            <span className="text-sm font-medium truncate">{user?.firstName ? `${user.firstName} ${user.lastName || ''}` : user?.email}</span>
+            <span className="text-xs text-muted-foreground truncate">{user?.role}</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}

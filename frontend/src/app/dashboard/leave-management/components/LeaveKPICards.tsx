@@ -3,6 +3,7 @@
 import React from 'react';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { Calendar, Clock, CheckCircle, XCircle, CalendarDays, FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface LeaveKPICardsProps {
   metrics: any[];
@@ -55,7 +56,10 @@ export function LeaveKPICards({ metrics, loading }: LeaveKPICardsProps) {
   };
 
   return (
-    <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+    <div className={cn(
+      "grid gap-4 h-full",
+      metrics?.length === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1 md:grid-cols-3"
+    )}>
       {metrics?.map((metric: any, i: number) => {
         const { color, bg, cardBg } = getColorClasses(metric.title);
         return (

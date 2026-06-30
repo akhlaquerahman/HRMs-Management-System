@@ -1,11 +1,16 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './authMiddleware';
 
+// Role-Based Access Control (RBAC) middleware: Checks if a user has the right permission level to access a route
 export const authorizeRoles = (...roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
+    // If there is no user attached to the request (not logged in), or the user's role isn't in the allowed list:
     if (!req.user || !roles.includes(req.user.role)) {
+      // Block them and send a 403 Forbidden error
       return res.status(403).json({ success: false, message: 'Forbidden: Insufficient role' });
     }
+    
+    // If they have the correct role, let them pass through to the actual route
     next();
   };
 };

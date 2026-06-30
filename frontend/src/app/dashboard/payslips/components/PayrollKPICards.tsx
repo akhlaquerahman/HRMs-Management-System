@@ -12,7 +12,7 @@ interface PayrollKPICardsProps {
 export function PayrollKPICards({ metrics, loading }: PayrollKPICardsProps) {
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6">
+      <div className="grid gap-6 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div key={i} className="rounded-xl border bg-card p-6 h-[120px] animate-pulse flex gap-4 items-center">
             <div className="w-12 h-12 rounded-lg bg-muted shrink-0" />
@@ -54,7 +54,7 @@ export function PayrollKPICards({ metrics, loading }: PayrollKPICardsProps) {
   };
 
   return (
-    <div className="grid gap-4 grid-cols-2 md:grid-cols-6 ">
+    <div className="grid gap-6 grid-cols-2 md:grid-cols-6 ">
       {metrics?.map((metric: any, i: number) => {
         const { color, bg, cardBg } = getColorClasses(metric.title);
         return (

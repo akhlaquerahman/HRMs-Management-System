@@ -9,7 +9,17 @@ export const getLeaveSummary = async (userId: string, role: string) => {
       include: { leaveBalance: true }
     });
     
-    if (!employee) throw new Error("Employee not found");
+    if (!employee) return {
+      metrics: [
+        { title: "Available Leaves", value: 0, subtitle: "Total Balance", trend: "0 used", icon: "CalendarDays" },
+        { title: "Pending Approvals", value: 0, subtitle: "Awaiting Action", trend: "0 new", icon: "Clock" },
+        { title: "Upcoming Leaves", value: 0, subtitle: "Next 30 days", trend: "0 days", icon: "CalendarCheck" },
+        { title: "Leaves Taken", value: 0, subtitle: "This Year", trend: "0% of quota", icon: "FileText" }
+      ],
+      insights: [
+        { id: '1', type: 'INFO', message: `No employee profile attached to this account.` }
+      ]
+    };
     
     const requests = await prisma.leaveRequest.findMany({
       where: { employeeId: employee.id }
@@ -32,7 +42,6 @@ export const getLeaveSummary = async (userId: string, role: string) => {
         { title: "Annual Leave", value: balance.annual, subtitle: `${usedAnnual} Used`, trend: "Total Quota", icon: "Calendar" },
         { title: "Pending Approval", value: pending, subtitle: "Awaiting Action", trend: "Under Review", icon: "Clock" },
         { title: "Approved Leaves", value: approved, subtitle: "This Year", trend: "Processed", icon: "CheckCircle" },
-        { title: "Upcoming Leaves", value: upcoming, subtitle: "Next 30 Days", trend: "Scheduled", icon: "CalendarDays" }
       ],
       balances: balance,
       insights: [
@@ -67,7 +76,7 @@ export const getLeaveRequests = async (userId: string, role: string, filters: an
   
   if (role === 'EMPLOYEE') {
     const employee = await prisma.employee.findUnique({ where: { userId } });
-    if (!employee) throw new Error("Employee not found");
+    if (!employee) return []; // Return empty array if user has no employee profile
     whereClause.employeeId = employee.id;
   }
 
@@ -84,7 +93,14 @@ export const getLeaveRequests = async (userId: string, role: string, filters: an
     orderBy: { createdAt: 'desc' },
     include: {
       employee: {
-        select: { id: true, firstName: true, lastName: true, department: true }
+        select: { 
+          id: true, 
+          firstName: true, 
+          lastName: true, 
+          department: {
+            select: { name: true }
+          }
+        }
       },
       approvalHistory: {
         include: { actedBy: { select: { firstName: true, lastName: true } } },
@@ -97,12 +113,17 @@ export const getLeaveRequests = async (userId: string, role: string, filters: an
 };
 
 export const createLeaveRequest = async (userId: string, data: any) => {
-  const employee = await prisma.employee.findUnique({ where: { userId } });
-  if (!employee) throw new Error("Employee not found");
+  let empId = data.employeeId;
+  
+  if (!empId || empId === 'self') {
+    const employee = await prisma.employee.findUnique({ where: { userId } });
+    if (!employee) throw new Error("Employee not found");
+    empId = employee.id;
+  }
 
   const request = await prisma.leaveRequest.create({
     data: {
-      employeeId: employee.id,
+      employeeId: empId,
       leaveType: data.leaveType,
       startDate: new Date(data.startDate),
       endDate: new Date(data.endDate),
@@ -177,8 +198,6 @@ export const getLeaveCalendar = async () => {
   });
 
   const holidays = await prisma.holiday.findMany({
-    where: { date: { gte: new Date() } },
-    take: 5,
     orderBy: { date: 'asc' }
   });
 

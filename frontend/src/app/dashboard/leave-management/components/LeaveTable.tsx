@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react';
 import { format, differenceInDays } from 'date-fns';
-import { ChevronDown, ChevronUp, FileText, CheckCircle2, Clock, XCircle, MoreVertical } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileText, CheckCircle2, Clock, XCircle, MoreVertical, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { LeaveHistoryTimeline } from './LeaveHistoryTimeline';
 
@@ -19,6 +21,8 @@ interface LeaveTableProps {
 
 export function LeaveTable({ data, loading, isHR, onApprove, onReject, onCancel }: LeaveTableProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   if (loading) {
     return (
@@ -57,6 +61,10 @@ export function LeaveTable({ data, loading, isHR, onApprove, onReject, onCancel 
     }
   };
 
+  const totalPages = Math.ceil((data?.length || 0) / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedData = data.slice(startIndex, startIndex + pageSize);
+
   return (
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col">
       <div className="overflow-x-auto">
@@ -75,7 +83,7 @@ export function LeaveTable({ data, loading, isHR, onApprove, onReject, onCancel 
             </tr>
           </thead>
           <tbody className="divide-y">
-            {data.map((request) => {
+            {paginatedData.map((request: any, i: number) => {
               const isExpanded = expandedId === request.id;
               const days = differenceInDays(new Date(request.endDate), new Date(request.startDate)) + 1;
               const isPending = request.status === 'PENDING';
@@ -110,26 +118,35 @@ export function LeaveTable({ data, loading, isHR, onApprove, onReject, onCancel 
                     <td className="px-4 py-3 text-muted-foreground">{format(new Date(request.createdAt), 'MMM dd, yyyy')}</td>
                     <td className="px-4 py-3">{getStatusBadge(request.status)}</td>
                     <td className="px-4 py-3 text-right">
-                      {isPending && isHR && (
-                        <div className="flex items-center justify-end gap-2">
-                          <Button size="sm" variant="outline" className="h-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={() => onApprove?.(request.id)}>
-                            <CheckCircle2 className="w-3 h-3 mr-1" /> Approve
+                      <div className="flex items-center justify-end gap-2">
+                        {isPending && isHR && (
+                          <>
+                            <Button size="sm" variant="outline" className="h-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50" onClick={() => onApprove?.(request.id)}>
+                              <CheckCircle2 className="w-3 h-3 mr-1" /> Approve
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-8 border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => onReject?.(request.id)}>
+                              <XCircle className="w-3 h-3 mr-1" /> Reject
+                            </Button>
+                          </>
+                        )}
+                        {isPending && !isHR && (
+                          <Button size="sm" variant="outline" className="h-8" onClick={() => onCancel?.(request.id)}>
+                            Cancel
                           </Button>
-                          <Button size="sm" variant="outline" className="h-8 border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => onReject?.(request.id)}>
-                            <XCircle className="w-3 h-3 mr-1" /> Reject
-                          </Button>
-                        </div>
-                      )}
-                      {isPending && !isHR && (
-                        <Button size="sm" variant="outline" className="h-8" onClick={() => onCancel?.(request.id)}>
-                          Cancel
-                        </Button>
-                      )}
-                      {!isPending && (
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      )}
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setExpandedId(isExpanded ? null : request.id)}>
+                              <Eye className="w-4 h-4 mr-2" /> View Details
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </td>
                   </tr>
 
@@ -158,9 +175,29 @@ export function LeaveTable({ data, loading, isHR, onApprove, onReject, onCancel 
                             {request.attachment && (
                               <div>
                                 <h4 className="text-xs font-bold text-muted-foreground uppercase mb-1">Attachments</h4>
-                                <Button variant="outline" size="sm" className="h-8">
-                                  <FileText className="w-3 h-3 mr-2" /> View Document
-                                </Button>
+                                {request.attachment.match(/\.(jpeg|jpg|gif|png)$/i) != null || request.attachment.startsWith('data:image') ? (
+                                  <div className="mt-2 border rounded-md p-1 bg-white inline-block shadow-sm">
+                                     <img src={request.attachment} alt="Attachment" className="max-h-32 object-contain rounded" />
+                                  </div>
+                                ) : (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 mt-1" 
+                                    onClick={() => {
+                                      if (request.attachment.startsWith('data:application/pdf')) {
+                                        const link = document.createElement('a');
+                                        link.href = request.attachment;
+                                        link.download = `leave_attachment_${request.id}.pdf`;
+                                        link.click();
+                                      } else {
+                                        window.open(request.attachment, '_blank');
+                                      }
+                                    }}
+                                  >
+                                    <FileText className="w-3 h-3 mr-2" /> Download Document
+                                  </Button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -180,6 +217,47 @@ export function LeaveTable({ data, loading, isHR, onApprove, onReject, onCancel 
             })}
           </tbody>
         </table>
+      </div>
+
+      <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20 text-sm">
+        <div className="flex items-center text-muted-foreground gap-2">
+          <span>Show</span>
+          <Select value={pageSize.toString()} onValueChange={(val) => { setPageSize(Number(val)); setCurrentPage(1); }}>
+            <SelectTrigger className="w-[70px] h-8 bg-white">
+              <SelectValue placeholder="10" />
+            </SelectTrigger>
+            <SelectContent>
+              {[10, 20, 50, 100].map(size => (
+                <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span>entries</span>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-8 w-8" 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-muted-foreground mx-2 text-xs font-medium">
+            Page {currentPage} of {totalPages || 1}
+          </span>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="h-8 w-8" 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages}
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

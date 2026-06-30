@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Users,
+  Building,
   Briefcase,
   CalendarCheck,
   Clock,
@@ -50,6 +51,11 @@ const menuConfig: MenuItem[] = [
     title: 'Employee Management',
     href: '/dashboard/employee-management',
     icon: Users,
+  },
+  {
+    title: 'Organization Setup',
+    href: '/dashboard/org-setup',
+    icon: Building,
   },
   {
     title: 'Attendance',
@@ -140,6 +146,7 @@ export default function Sidebar() {
     const adminOnlyLinks = ['/dashboard/users', '/dashboard/roles', '/dashboard/audit-logs'];
     const hrOnlyLinks = [
       '/dashboard/employee-management', 
+      '/dashboard/org-setup',
       '/dashboard/attendance', 
       '/dashboard/leave-management', 
       '/dashboard/payroll', 

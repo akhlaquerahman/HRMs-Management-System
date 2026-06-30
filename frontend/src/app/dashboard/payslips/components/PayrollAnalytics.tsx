@@ -56,7 +56,7 @@ export function PayrollAnalytics({ analytics, loading }: PayrollAnalyticsProps) 
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(value) => `₹${value/1000}k`} />
               <RechartsTooltip 
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                formatter={(value: number) => [`₹${value.toLocaleString()}`, undefined]}
+                formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, undefined]}
               />
               <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
               <Area type="monotone" dataKey="grossSalary" name={t("Gross Salary")} stroke="#3b82f6" fillOpacity={1} fill="url(#colorGross)" />
@@ -77,7 +77,7 @@ export function PayrollAnalytics({ analytics, loading }: PayrollAnalyticsProps) 
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={(value) => `₹${value/1000}k`} />
               <RechartsTooltip 
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                formatter={(value: number) => [`₹${value.toLocaleString()}`, undefined]}
+                formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, undefined]}
                 cursor={{ fill: 'transparent' }}
               />
               <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />

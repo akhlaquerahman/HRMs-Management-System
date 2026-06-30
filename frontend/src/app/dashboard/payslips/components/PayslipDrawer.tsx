@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/axios";
 
 interface PayslipDrawerProps {
   isOpen: boolean;
@@ -15,6 +17,11 @@ interface PayslipDrawerProps {
 
 export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
   const { t } = useTranslation();
+
+  const { data: companyRes } = useQuery({
+    queryKey: ["company"],
+    queryFn: async () => (await api.get("/company")).data
+  });
 
   if (!record) return null;
 
@@ -30,7 +37,7 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
         We use print:absolute print:inset-0 print:bg-white print:z-[9999] 
         to ensure this modal covers everything else when printing 
       */}
-      <DialogContent className="max-w-3xl p-0 overflow-hidden bg-white print:border-none print:shadow-none print:m-0 print:p-0">
+      <DialogContent className="max-w-3xl p-0 overflow-y-auto max-h-[90vh] bg-white print:border-none print:shadow-none print:m-0 print:p-0 print:max-h-none print:overflow-visible">
         <DialogTitle className="sr-only">Payslip Details</DialogTitle>
         
         {/* Modal Header (Hidden on Print) */}
@@ -45,9 +52,15 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
             {/* Header Section */}
             <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-200">
               <div>
-                <h1 className="text-3xl font-bold text-blue-600 mb-1">COMPANY NAME</h1>
-                <p className="text-sm text-gray-500">123 Business Avenue, Tech City</p>
-                <p className="text-sm text-gray-500">contact@company.com | +1 234 567 8900</p>
+                <h1 className="text-3xl font-bold text-blue-600 mb-1">
+                  {companyRes?.data?.companyName || "HRMs Pro"}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {companyRes?.data?.companyAddress || "456 Corporate Blvd, Business Hub"}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {companyRes?.data?.companyWebsite || "admin@hrmspro.com"} | {companyRes?.data?.companyPhone || "+91 987 654 3210"}
+                </p>
               </div>
               <div className="text-right">
                 <h2 className="text-2xl font-bold text-gray-800 mb-1 uppercase">PAYSLIP</h2>
@@ -70,7 +83,13 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
                   <span className="text-gray-800">#{record.employee?.id?.slice(0, 6).toUpperCase()}</span>
                   
                   <span className="text-gray-500">Email:</span>
-                  <span className="text-gray-800">{record.employee?.email}</span>
+                  <span className="text-gray-800">{record.employee?.user?.email || record.employee?.email || 'N/A'}</span>
+                  
+                  <span className="text-gray-500">Bank Name:</span>
+                  <span className="text-gray-800">{record.employee?.bankName || 'N/A'}</span>
+                  
+                  <span className="text-gray-500">Account No:</span>
+                  <span className="text-gray-800 font-mono">{record.employee?.accountNumber || 'N/A'}</span>
                 </div>
               </div>
 
@@ -80,7 +99,7 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
                 <div className="grid grid-cols-2 gap-y-4 gap-x-4 text-sm">
                   <div>
                     <p className="text-gray-500 mb-0.5">Payment Date</p>
-                    <p className="font-semibold text-gray-800">{format(new Date(record.paymentDate), 'M/d/yyyy')}</p>
+                    <p className="font-semibold text-gray-800">{format(new Date(record.paymentDate), 'M/d/yyyy h:mm a')}</p>
                   </div>
                   <div>
                     <p className="text-gray-500 mb-0.5">Status</p>

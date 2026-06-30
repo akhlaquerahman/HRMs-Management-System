@@ -37,14 +37,14 @@ api.interceptors.response.use(
   async (error) => {
     stopLoader();
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== '/auth/login' && originalRequest.url !== '/auth/refresh') {
+    if (error.response?.status === 401 && !originalRequest._retry && !['/auth/login', '/auth/refresh', '/auth/send-login-otp', '/auth/verify-login-otp', '/auth/google-login'].includes(originalRequest.url)) {
       originalRequest._retry = true;
       try {
         startLoader();
         const res = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {}, { withCredentials: true });
         stopLoader();
         if (res.data.success) {
-          useAuthStore.getState().setAuth(useAuthStore.getState().user, res.data.data.token);
+          useAuthStore.getState().setAuth(useAuthStore.getState().user as any, res.data.data.token);
           originalRequest.headers.Authorization = `Bearer ${res.data.data.token}`;
           return api(originalRequest);
         }

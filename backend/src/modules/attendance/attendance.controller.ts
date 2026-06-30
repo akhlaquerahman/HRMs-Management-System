@@ -140,13 +140,18 @@ export const punchOut = async (req: Request, res: Response) => {
     allBreaks.forEach(b => {
       if (b.breakEnd) breakMs += (b.breakEnd.getTime() - b.breakStart.getTime());
     });
+    
+    let effectiveMs = grossMs - breakMs;
+    if (effectiveMs < 0) effectiveMs = 0;
 
     const grossHours = grossMs / (1000 * 60 * 60);
-    const effectiveHours = (grossMs - breakMs) / (1000 * 60 * 60);
+    const effectiveHours = effectiveMs / (1000 * 60 * 60);
+
+    const newStatus = effectiveHours < 4 ? "HALF_DAY" : "PRESENT";
 
     await prisma.attendanceRecord.update({
       where: { id: record.id },
-      data: { grossHours, effectiveHours }
+      data: { grossHours, effectiveHours, status: newStatus }
     });
 
     return res.status(200).json(new ApiResponse(true, "Punched Out Successfully", updatedLog));
@@ -278,7 +283,6 @@ export const updateManual = async (req: Request, res: Response) => {
     const record = await prisma.attendanceRecord.update({
       where: { id },
       data: {
-        date: date ? new Date(date) : undefined,
         status,
         shiftId: shiftId || undefined,
         grossHours: punchIn && punchOut ? (new Date(punchOut).getTime() - new Date(punchIn).getTime()) / 3600000 : 0,
@@ -409,6 +413,82 @@ export const getMyCharts = async (req: Request, res: Response) => {
     ];
 
     return res.status(200).json(new ApiResponse(true, "Charts fetched", { weeklyHours, monthlyAttendance }));
+  } catch (error: any) {
+    return res.status(500).json(new ApiResponse(false, error.message));
+  }
+};
+
+export const bulkUpload = async (req: Request, res: Response) => {
+  try {
+    const { records } = req.body; // Array of { employeeId, date, punchIn, punchOut, status }
+    if (!records || !Array.isArray(records)) {
+      return res.status(400).json(new ApiResponse(false, "Invalid data format"));
+    }
+
+    let successCount = 0;
+    const errors: any[] = [];
+
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      try {
+        const employee = await prisma.employee.findUnique({
+          where: { employeeId: record.employeeId }
+        });
+        
+        if (!employee) {
+          errors.push({ row: i + 1, employeeId: record.employeeId, error: "Employee not found" });
+          continue;
+        }
+
+        const dateObj = new Date(record.date);
+        if (isNaN(dateObj.getTime())) {
+          errors.push({ row: i + 1, employeeId: record.employeeId, error: "Invalid date format" });
+          continue;
+        }
+        
+        // Check if record exists
+        let attendanceRecord = await prisma.attendanceRecord.findFirst({
+          where: { employeeId: employee.id, date: dateObj }
+        });
+
+        if (!attendanceRecord) {
+          attendanceRecord = await prisma.attendanceRecord.create({
+            data: {
+              employeeId: employee.id,
+              date: dateObj,
+              status: record.status || "PRESENT"
+            }
+          });
+        } else {
+          await prisma.attendanceRecord.update({
+            where: { id: attendanceRecord.id },
+            data: { status: record.status || attendanceRecord.status }
+          });
+        }
+
+        if (record.punchIn) {
+          const punchInDate = new Date(record.punchIn);
+          if (!isNaN(punchInDate.getTime())) {
+            await prisma.attendanceLog.create({
+              data: {
+                attendanceId: attendanceRecord.id,
+                punchIn: punchInDate,
+                punchOut: record.punchOut ? new Date(record.punchOut) : null,
+              }
+            });
+          }
+        }
+        successCount++;
+      } catch (err: any) {
+        errors.push({ row: i + 1, employeeId: record.employeeId, error: err.message || "Database error" });
+      }
+    }
+
+    if (errors.length > 0) {
+      return res.status(207).json(new ApiResponse(true, `Bulk upload finished with errors. Success: ${successCount}, Failed: ${errors.length}`, { successCount, errors }));
+    }
+
+    return res.status(200).json(new ApiResponse(true, `Bulk upload completed successfully. Success: ${successCount}`));
   } catch (error: any) {
     return res.status(500).json(new ApiResponse(false, error.message));
   }

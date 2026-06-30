@@ -305,9 +305,7 @@ export const getEmployeeStats = async (userId: string) => {
   }).catch(() => []);
 
   const holidays = await prisma.holiday.findMany({
-    where: { date: { gte: today } },
-    orderBy: { date: 'asc' },
-    take: 5
+    orderBy: { date: 'asc' }
   }).catch(() => []);
 
   // Calculate profile completion

@@ -27,8 +27,8 @@ export function LeaveFilterToolbar({
   return (
     <div className="flex flex-col gap-4 p-4 bg-card border rounded-xl shadow-sm md:flex-row md:items-center md:justify-between">
       
-      <div className="flex flex-1 items-center gap-3 flex-wrap">
-        <div className="relative w-full md:w-64">
+      <div className="flex flex-1 items-center gap-3 flex-wrap lg:flex-nowrap">
+        <div className="relative w-full lg:w-56 shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             placeholder={t("Search by ID or Reason...")} 

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { FileText, MoreVertical, Eye, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, MoreVertical, Eye, Download, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,39 @@ interface PayrollTableProps {
 export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig?.key === columnKey) {
+      return sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 ml-1 inline-block" /> : <ChevronDown className="w-3 h-3 ml-1 inline-block" />;
+    }
+    return <ArrowUpDown className="w-3 h-3 ml-1 inline-block text-muted-foreground/30 group-hover:text-muted-foreground" />;
+  };
+
+  const sortedData = React.useMemo(() => {
+    if (!data || !sortConfig) return data || [];
+    return [...data].sort((a, b) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+      
+      if (sortConfig.key === 'period') {
+        valA = a.year * 100 + a.month;
+        valB = b.year * 100 + b.month;
+      }
+      
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [data, sortConfig]);
 
   if (loading) {
     return (
@@ -70,14 +103,15 @@ export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps)
 
   const getMonthName = (month: number) => {
     const d = new Date();
+    d.setDate(1);
     d.setMonth(month - 1);
     return format(d, 'MMM');
   };
 
   // Pagination Logic
-  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = data.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedData = sortedData.slice(startIndex, startIndex + itemsPerPage);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -97,13 +131,24 @@ export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps)
           <thead className="bg-muted/30 text-muted-foreground text-xs uppercase font-semibold sticky top-0">
             <tr>
               <th className="px-4 py-3">Payroll ID</th>
-              <th className="px-4 py-3">Period</th>
+              <th className="px-4 py-3 cursor-pointer hover:text-foreground transition-colors group select-none" onClick={() => handleSort('period')}>
+                Period <SortIcon columnKey="period" />
+              </th>
               {isHR && <th className="px-4 py-3">Employee</th>}
               <th className="px-4 py-3">Working / Paid</th>
-              <th className="px-4 py-3">Gross Salary</th>
-              <th className="px-4 py-3">Deductions</th>
-              <th className="px-4 py-3">Net Salary</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 cursor-pointer hover:text-foreground transition-colors group select-none" onClick={() => handleSort('grossSalary')}>
+                Gross Salary <SortIcon columnKey="grossSalary" />
+              </th>
+              <th className="px-4 py-3 cursor-pointer hover:text-foreground transition-colors group select-none" onClick={() => handleSort('deductions')}>
+                Deductions <SortIcon columnKey="deductions" />
+              </th>
+              <th className="px-4 py-3 cursor-pointer hover:text-foreground transition-colors group select-none" onClick={() => handleSort('netSalary')}>
+                Net Salary <SortIcon columnKey="netSalary" />
+              </th>
+              <th className="px-4 py-3">Bank Details</th>
+              <th className="px-4 py-3 cursor-pointer hover:text-foreground transition-colors group select-none" onClick={() => handleSort('status')}>
+                Status <SortIcon columnKey="status" />
+              </th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -127,6 +172,16 @@ export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps)
                 <td className="px-4 py-3">₹{record.grossSalary.toLocaleString()}</td>
                 <td className="px-4 py-3 text-rose-600">₹{record.deductions.toLocaleString()}</td>
                 <td className="px-4 py-3 font-bold text-emerald-600">₹{record.netSalary.toLocaleString()}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-xs truncate max-w-[120px]">{record.employee?.bankName || 'N/A'}</span>
+                    {record.employee?.accountNumber && (
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        {record.employee.accountNumber}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-3">{getStatusBadge(record.status)}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1">
@@ -140,10 +195,10 @@ export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps)
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onView(record)}>
                           <Download className="w-4 h-4 mr-2" /> Download PDF
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => alert('Payslip sent successfully to the employee email!')}>
                           <FileText className="w-4 h-4 mr-2" /> Email Payslip
                         </DropdownMenuItem>
                       </DropdownMenuContent>

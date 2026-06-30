@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { createDepartment, getDepartments, updateDepartment, deleteDepartment } from './department.controller';
 import { authenticate } from '../../middlewares/authMiddleware';
+import { validateRequest } from '../../middlewares/validateRequest';
+import { createDepartmentSchema, updateDepartmentSchema } from './department.schema';
 
 const router = Router();
 
@@ -57,7 +59,7 @@ router.use(authenticate); // All routes require authentication
  *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.route('/')
-  .post(createDepartment)
+  .post(validateRequest({ body: createDepartmentSchema }), createDepartment)
   .get(getDepartments);
 
 /**
@@ -118,7 +120,7 @@ router.route('/')
  *         $ref: '#/components/responses/NotFoundError'
  */
 router.route('/:id')
-  .put(updateDepartment)
+  .put(validateRequest({ body: updateDepartmentSchema }), updateDepartment)
   .delete(deleteDepartment);
 
 export default router;

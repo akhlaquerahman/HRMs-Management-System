@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,22 +7,45 @@ import { Label } from '@/components/ui/label';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
+import { Loader2 } from "lucide-react";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { nameValidation, emailValidation, passwordValidation, empIdValidation } from '@/lib/validations/common.schema';
+
+const employeeSchema = z.object({
+  firstName: nameValidation,
+  lastName: nameValidation,
+  email: emailValidation,
+  password: passwordValidation,
+  employeeId: empIdValidation,
+  departmentId: z.string().optional(),
+  designationId: z.string().optional(),
+  joiningDate: z.string().min(1, "Joining date is required"),
+  employmentType: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT']),
+  baseSalary: z.string().optional(),
+});
+
+type EmployeeFormData = z.infer<typeof employeeSchema>;
 
 export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    employeeId: '',
-    departmentId: '',
-    designationId: '',
-    joiningDate: new Date().toISOString().split('T')[0],
-    employmentType: 'FULL_TIME',
-    baseSalary: '',
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<EmployeeFormData>({
+    resolver: zodResolver(employeeSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      employeeId: '',
+      departmentId: '',
+      designationId: '',
+      joiningDate: new Date().toISOString().split('T')[0],
+      employmentType: 'FULL_TIME',
+      baseSalary: '',
+    },
   });
 
   // Fetch meta data
@@ -39,14 +62,20 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
   useEffect(() => {
     if (isOpen) {
       const randomId = `EMP-${Math.floor(Math.random() * 9000) + 1000}`;
-      setFormData(prev => ({ ...prev, employeeId: randomId }));
+      reset({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        employeeId: randomId,
+        departmentId: '',
+        designationId: '',
+        joiningDate: new Date().toISOString().split('T')[0],
+        employmentType: 'FULL_TIME',
+        baseSalary: '',
+      });
     }
-  }, [isOpen]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  }, [isOpen, reset]);
 
   const createEmployee = useMutation({
     mutationFn: async (data: any) => {
@@ -57,38 +86,18 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
       queryClient.invalidateQueries({ queryKey: ['workforceEmployees'] });
       queryClient.invalidateQueries({ queryKey: ['workforceDashboard'] });
       onClose();
-      // Reset form
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        password: '',
-        employeeId: '',
-        departmentId: '',
-        designationId: '',
-        joiningDate: new Date().toISOString().split('T')[0],
-        employmentType: 'FULL_TIME',
-        baseSalary: '',
-      });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || error.message);
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.employeeId || !formData.password) {
-      return toast.error(t("Please fill all required fields."));
-    }
-    
-    // Ensure date is properly formatted
+  const onSubmitForm = (data: EmployeeFormData) => {
     const payload = {
-      ...formData,
-      joiningDate: new Date(formData.joiningDate).toISOString(),
-      baseSalary: formData.baseSalary ? parseFloat(formData.baseSalary) : 0,
+      ...data,
+      joiningDate: new Date(data.joiningDate).toISOString(),
+      baseSalary: data.baseSalary ? parseFloat(data.baseSalary) : 0,
     };
-    
     createEmployee.mutate(payload);
   };
 
@@ -102,41 +111,105 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">{t("First Name")} *</Label>
-              <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="John" required />
+              <Input 
+                id="firstName" 
+                {...(() => {
+                  const { onChange, ...rest } = register("firstName");
+                  return {
+                    ...rest,
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                      e.target.value = e.target.value.replace(/[^a-zA-Z\s\'-]/g, '');
+                      onChange(e);
+                    }
+                  }
+                })()}
+                placeholder="John" 
+              />
+              {errors.firstName && <p className="text-[10px] text-destructive">{errors.firstName.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="lastName">{t("Last Name")} *</Label>
-              <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Doe" required />
+              <Input 
+                id="lastName" 
+                {...(() => {
+                  const { onChange, ...rest } = register("lastName");
+                  return {
+                    ...rest,
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                      e.target.value = e.target.value.replace(/[^a-zA-Z\s\'-]/g, '');
+                      onChange(e);
+                    }
+                  }
+                })()}
+                placeholder="Doe" 
+              />
+              {errors.lastName && <p className="text-[10px] text-destructive">{errors.lastName.message}</p>}
             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="email">{t("Email Address")} *</Label>
-              <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="john.doe@company.com" required />
+              <Input 
+                id="email" 
+                type="email" 
+                {...register("email")}
+                placeholder="john.doe@company.com" 
+              />
+              {errors.email && <p className="text-[10px] text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">{t("Temporary Password")} *</Label>
-              <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="••••••••" required />
+              <Input 
+                id="password" 
+                type="password" 
+                {...register("password")}
+                placeholder="••••••••" 
+              />
+              {errors.password && <p className="text-[10px] text-destructive">{errors.password.message}</p>}
             </div>
           </div>
           
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="employeeId">{t("Employee ID")} *</Label>
-              <Input id="employeeId" name="employeeId" value={formData.employeeId} onChange={handleChange} placeholder="EMP-001" required />
+              <Input 
+                id="employeeId" 
+                {...register("employeeId")}
+                placeholder="EMP-001" 
+              />
+              {errors.employeeId && <p className="text-[10px] text-destructive">{errors.employeeId.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="joiningDate">{t("Joining Date")} *</Label>
-              <Input id="joiningDate" name="joiningDate" type="date" value={formData.joiningDate} onChange={handleChange} required />
+              <Input 
+                id="joiningDate" 
+                type="date" 
+                {...register("joiningDate")}
+              />
+              {errors.joiningDate && <p className="text-[10px] text-destructive">{errors.joiningDate.message}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="baseSalary">{t("Base Salary (Annual CTC)")}</Label>
-              <Input id="baseSalary" name="baseSalary" type="number" min="0" step="0.01" value={formData.baseSalary} onChange={handleChange} placeholder="e.g. 500000" />
+              <Input 
+                id="baseSalary" 
+                {...(() => {
+                  const { onChange, ...rest } = register("baseSalary");
+                  return {
+                    ...rest,
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                      e.target.value = e.target.value.replace(/[^\d.]/g, '');
+                      onChange(e);
+                    }
+                  }
+                })()}
+                placeholder="e.g. 500000" 
+              />
+              {errors.baseSalary && <p className="text-[10px] text-destructive">{errors.baseSalary.message}</p>}
             </div>
           </div>
           
@@ -144,9 +217,9 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
             <div className="space-y-2">
               <Label htmlFor="departmentId">{t("Department")}</Label>
               <select 
-                id="departmentId" name="departmentId" 
-                value={formData.departmentId} onChange={handleChange}
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                id="departmentId" 
+                {...register("departmentId")}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="">{t("Select Department")}</option>
                 {departments?.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -155,9 +228,9 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
             <div className="space-y-2">
               <Label htmlFor="designationId">{t("Role / Designation")}</Label>
               <select 
-                id="designationId" name="designationId" 
-                value={formData.designationId} onChange={handleChange}
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                id="designationId" 
+                {...register("designationId")}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="">{t("Select Role")}</option>
                 {designations?.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -166,9 +239,9 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
             <div className="space-y-2">
               <Label htmlFor="employmentType">{t("Employment Type")} *</Label>
               <select 
-                id="employmentType" name="employmentType" 
-                value={formData.employmentType} onChange={handleChange}
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                id="employmentType" 
+                {...register("employmentType")}
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="FULL_TIME">Full Time</option>
                 <option value="PART_TIME">Part Time</option>
@@ -177,10 +250,16 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
             </div>
           </div>
 
-          <DialogFooter className="pt-4">
+          <DialogFooter className="mt-6 border-t pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={createEmployee.isPending}>{t("Cancel")}</Button>
             <Button type="submit" disabled={createEmployee.isPending}>
-              {createEmployee.isPending ? t("Saving...") : t("Add Employee")}
+              {createEmployee.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("Saving...")}
+                </>
+              ) : (
+                t("Add Employee")
+              )}
             </Button>
           </DialogFooter>
         </form>

@@ -280,7 +280,7 @@ export default function ForgotPasswordPage() {
             {/* Pagination Dots */}
             {heroSlides.length > 0 && (
               <div className="absolute bottom-0 left-0 flex gap-2">
-                {heroSlides.map((_, i) => (
+                {heroSlides.map((_: any, i: number) => (
                   <div 
                     key={i} 
                     className={`h-1.5 rounded-full transition-all duration-500 ${currentSlide === i ? 'w-8 bg-blue-500' : 'w-2 bg-white/20'}`}

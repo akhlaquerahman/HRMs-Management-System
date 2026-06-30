@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UserCircle, MoreVertical, ChevronDown, ChevronRight, Edit, Eye, Trash2, Shield, ChevronLeft, ChevronRight as ChevronRightIcon, UserPlus } from 'lucide-react';
+import { formatDate } from '@/lib/dateUtils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmployeeRowExpanded } from './EmployeeRowExpanded';
@@ -13,7 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 
-export function EmployeeTable({ data, loading, onOpenProfile }: { data: any[], loading: boolean, onOpenProfile: (id: string) => void }) {
+export function EmployeeTable({ data, loading, onOpenProfile, onEditEmployee }: { data: any[], loading: boolean, onOpenProfile: (id: string) => void, onEditEmployee: (emp: any) => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -26,6 +27,8 @@ export function EmployeeTable({ data, loading, onOpenProfile }: { data: any[], l
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  // Sorting State
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
 
   const toggleExpand = (id: string) => setExpandedRows(p => ({ ...p, [id]: !p[id] }));
   const toggleSelect = (id: string) => setSelectedRows(p => ({ ...p, [id]: !p[id] }));
@@ -65,6 +68,45 @@ export function EmployeeTable({ data, loading, onOpenProfile }: { data: any[], l
     }
   };
 
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const managerIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    data?.forEach(emp => {
+      if (emp.managerId) ids.add(emp.managerId);
+    });
+    return ids;
+  }, [data]);
+
+  const sortedData = React.useMemo(() => {
+    let sortableItems = [...(data || [])];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+        
+        // Handle nested fields
+        if (sortConfig.key === 'department') aVal = a.department?.name || '';
+        if (sortConfig.key === 'designation') aVal = a.designation?.name || '';
+        if (sortConfig.key === 'name') {
+          aVal = `${a.firstName} ${a.lastName}`;
+          bVal = `${b.firstName} ${b.lastName}`;
+        }
+        
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [data, sortConfig]);
+
   if (loading) {
     return (
       <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
@@ -93,11 +135,10 @@ export function EmployeeTable({ data, loading, onOpenProfile }: { data: any[], l
   }
 
   // Calculate pagination
-  const safeData = data || [];
-  const totalItems = safeData.length;
+  const totalItems = sortedData.length;
   const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
   const startIndex = (currentPage - 1) * rowsPerPage;
-  const paginatedData = safeData.slice(startIndex, startIndex + rowsPerPage);
+  const paginatedData = sortedData.slice(startIndex, startIndex + rowsPerPage);
 
   const handleNextPage = () => { if (currentPage < totalPages) setCurrentPage(p => p + 1); };
   const handlePrevPage = () => { if (currentPage > 1) setCurrentPage(p => p - 1); };
@@ -116,12 +157,24 @@ export function EmployeeTable({ data, loading, onOpenProfile }: { data: any[], l
                   />
                 </TableHead>
                 <TableHead className="w-12"></TableHead>
-                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap">{t("Employee ID")}</TableHead>
-                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap">{t("Employee Details")}</TableHead>
-                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap">{t("Role & Dept")}</TableHead>
-                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap">{t("Manager")}</TableHead>
-                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap">{t("Joined")}</TableHead>
-                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap">{t("Status")}</TableHead>
+                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('employeeId')}>
+                  {t("Employee ID")} {sortConfig?.key === 'employeeId' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </TableHead>
+                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('name')}>
+                  {t("Employee Details")} {sortConfig?.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </TableHead>
+                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('department')}>
+                  {t("Role & Dept")} {sortConfig?.key === 'department' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </TableHead>
+                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('manager')}>
+                  {t("Manager")} {sortConfig?.key === 'manager' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </TableHead>
+                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('joiningDate')}>
+                  {t("Joined")} {sortConfig?.key === 'joiningDate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </TableHead>
+                <TableHead className="py-3 font-semibold text-muted-foreground whitespace-nowrap cursor-pointer hover:bg-muted/80 transition-colors" onClick={() => handleSort('status')}>
+                  {t("Status")} {sortConfig?.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </TableHead>
                 <TableHead className="py-3 w-12 text-center"></TableHead>
               </TableRow>
             </TableHeader>
@@ -171,13 +224,18 @@ export function EmployeeTable({ data, loading, onOpenProfile }: { data: any[], l
                             <UserCircle className="w-4 h-4 text-muted-foreground" />
                             <span className="text-sm whitespace-nowrap">{emp.manager.firstName} {emp.manager.lastName}</span>
                           </>
+                        ) : managerIds.has(emp.id) ? (
+                          <>
+                            <UserCircle className="w-4 h-4 text-emerald-600" />
+                            <span className="text-sm whitespace-nowrap text-emerald-700 font-medium">{emp.firstName} {emp.lastName}</span>
+                          </>
                         ) : (
                           <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm whitespace-nowrap">{new Date(emp.joiningDate).toLocaleDateString()}</span>
+                      <span className="text-sm whitespace-nowrap">{formatDate(emp.joiningDate)}</span>
                     </TableCell>
                     <TableCell>
                       <Badge variant={emp.status === 'ACTIVE' ? 'default' : emp.status === 'ON_LEAVE' ? 'secondary' : 'destructive'} 
@@ -192,9 +250,9 @@ export function EmployeeTable({ data, loading, onOpenProfile }: { data: any[], l
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onSelect={() => onOpenProfile(emp.id)}><Eye className="w-4 h-4 mr-2" /> {t("View Profile")}</DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => onOpenProfile(emp.id)}><Edit className="w-4 h-4 mr-2" /> {t("Edit Details")}</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onEditEmployee(emp); }}><Edit className="w-4 h-4 mr-2" /> {t("Edit Details")}</DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onSelect={() => openAssignManager(emp.id)}><UserPlus className="w-4 h-4 mr-2" /> {t("Assign Manager")}</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); openAssignManager(emp.id); }}><UserPlus className="w-4 h-4 mr-2" /> {t("Assign Manager")}</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {emp.status === 'ACTIVE' ? (
                             <DropdownMenuItem onSelect={() => handleToggleStatus(emp.id, emp.status)} className="text-destructive focus:bg-destructive/10 focus:text-destructive"><Trash2 className="w-4 h-4 mr-2" /> {t("Deactivate")}</DropdownMenuItem>

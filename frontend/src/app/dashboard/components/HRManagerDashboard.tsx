@@ -11,7 +11,7 @@ import { CompanyAnnouncements } from '@/components/dashboard/CompanyAnnouncement
 import { PendingTasks } from '@/components/dashboard/PendingTasks';
 import { DashboardDataTable } from '@/components/dashboard/DashboardDataTable';
 import {
-  PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer
+  PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Label
 } from 'recharts';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,21 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export function HRManagerDashboard({ stats }: { stats: any }) {
   const { t } = useTranslation();
+
+  const totalEmployees = stats?.pieChartData?.reduce((acc: number, curr: any) => acc + curr.value, 0) || 0;
+
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return percent > 0.05 ? (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight="bold">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    ) : null;
+  };
 
   const deptColumns = [
     { header: "Department", accessor: "department" },
@@ -63,37 +78,6 @@ export function HRManagerDashboard({ stats }: { stats: any }) {
         {/* Main Left Column (Takes up 8 columns out of 12) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           
-          <div className="grid gap-6 md:grid-cols-2">
-            <AIInsightsCard insights={stats?.insights || []} />
-            <PendingTasks tasks={stats?.pendingTasks || []} />
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 h-[400px]">
-            <DashboardDataTable 
-              title="Department Attendance Summary" 
-              data={stats?.deptAttendance || []} 
-              columns={deptColumns}
-            />
-            
-            <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col">
-              <h3 className="text-lg font-semibold mb-4 text-primary">Recruitment Pipeline</h3>
-              <div className="flex-1 flex flex-col gap-4 justify-center">
-                {stats?.pipeline?.map((stage: any, idx: number) => (
-                  <div key={idx} className="flex items-center gap-4">
-                    <div className="w-24 text-sm font-medium">{stage.stage}</div>
-                    <div className="flex-1 bg-muted rounded-full h-3">
-                      <div 
-                        className="bg-primary h-3 rounded-full" 
-                        style={{ width: `${Math.max(10, (stage.count / (stats?.pipeline?.[0]?.count || 1)) * 100)}%` }}
-                      />
-                    </div>
-                    <div className="w-8 text-right font-bold text-sm">{stage.count}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
           <div className="grid gap-6 md:grid-cols-2 h-[350px]">
             <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col">
               <h3 className="text-lg font-semibold mb-4 text-primary">Department Distribution</h3>
@@ -102,18 +86,36 @@ export function HRManagerDashboard({ stats }: { stats: any }) {
                   <PieChart style={{ outline: 'none' }}>
                     <Pie
                       data={stats?.pieChartData}
-                      cx="50%" cy="50%"
-                      outerRadius={80}
+                      cx="50%" cy="45%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={0}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ percent }) => `${((percent || 0) * 100).toFixed(0)}%`}
+                      stroke="none"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
                     >
+                      <Label 
+                        value={totalEmployees} 
+                        position="center" 
+                        fill="#333" 
+                        style={{ fontSize: '24px', fontWeight: 'bold' }} 
+                      />
                       {stats?.pieChartData?.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip />
-                    <Legend verticalAlign="bottom" height={36} />
+                    <Tooltip 
+                      formatter={(value: any) => [`${value} Employees`, 'Count']}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={48} 
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -139,13 +141,20 @@ export function HRManagerDashboard({ stats }: { stats: any }) {
             </div>
           </div>
 
+          <div className="h-[400px]">
+            <DashboardDataTable 
+              title="Department Attendance Summary" 
+              data={stats?.deptAttendance || []} 
+              columns={deptColumns}
+            />
+        
+          </div>
+
         </div>
 
         {/* Right Sidebar Column (Takes up 4 columns out of 12) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           
-          <CompanyAnnouncements announcements={stats?.announcements || []} />
-
           {/* Celebrations Widget */}
           <div className="rounded-xl border bg-card shadow-sm p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">

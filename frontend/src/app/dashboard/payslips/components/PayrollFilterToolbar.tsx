@@ -13,6 +13,8 @@ interface PayrollFilterToolbarProps {
   onReset: () => void;
   onExportCSV: () => void;
   showEmployeeFilter?: boolean;
+  onCreateClick?: () => void;
+  onBulkPayClick?: () => void;
 }
 
 export function PayrollFilterToolbar({ 
@@ -20,7 +22,9 @@ export function PayrollFilterToolbar({
   onFilterChange, 
   onReset, 
   onExportCSV,
-  showEmployeeFilter = false
+  showEmployeeFilter = false,
+  onCreateClick,
+  onBulkPayClick
 }: PayrollFilterToolbarProps) {
   const { t } = useTranslation();
 
@@ -55,8 +59,8 @@ export function PayrollFilterToolbar({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">{t("All Months")}</SelectItem>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
-              <SelectItem key={m} value={m.toString()}>Month {m}</SelectItem>
+            {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((monthName, index) => (
+              <SelectItem key={index + 1} value={(index + 1).toString()}>{t(monthName)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -83,6 +87,18 @@ export function PayrollFilterToolbar({
           <Download className="w-4 h-4 mr-2" />
           CSV
         </Button>
+        {onBulkPayClick && (
+          <Button size="sm" className="h-10 px-4 bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onBulkPayClick}>
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            {t("Bulk Pay")}
+          </Button>
+        )}
+        {onCreateClick && (
+          <Button size="sm" className="h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90" onClick={onCreateClick}>
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            {t("Pay Salary")}
+          </Button>
+        )}
       </div>
 
     </div>

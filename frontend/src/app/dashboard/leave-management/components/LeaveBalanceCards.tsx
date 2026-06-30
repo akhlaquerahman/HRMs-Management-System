@@ -40,43 +40,38 @@ export function LeaveBalanceCards({ balances, loading }: LeaveBalanceCardsProps)
   };
 
   const cards = [
-    { title: 'Annual Leave', icon: Plane, remaining: balances?.annual, total: quotas.annual, color: 'bg-emerald-500' },
-    { title: 'Casual Leave', icon: CalendarDays, remaining: balances?.casual, total: quotas.casual, color: 'bg-blue-500' },
-    { title: 'Medical Leave', icon: BriefcaseMedical, remaining: balances?.medical, total: quotas.medical, color: 'bg-rose-500' },
-    { title: 'Earned Leave', icon: Award, remaining: balances?.earned, total: quotas.earned, color: 'bg-amber-500' },
-    { title: 'Comp Off', icon: Building, remaining: balances?.compOff, total: quotas.compOff, color: 'bg-indigo-500', isDynamic: true }
+    { title: 'Casual Leave', icon: CalendarDays, remaining: balances?.casual, total: quotas.casual, color: 'text-blue-600', bg: 'bg-blue-100', cardBg: 'bg-blue-50/50' },
+    { title: 'Medical Leave', icon: BriefcaseMedical, remaining: balances?.medical, total: quotas.medical, color: 'text-rose-600', bg: 'bg-rose-100', cardBg: 'bg-rose-50/50' },
+    { title: 'Earned Leave', icon: Award, remaining: balances?.earned, total: quotas.earned, color: 'text-amber-600', bg: 'bg-amber-100', cardBg: 'bg-amber-50/50' },
   ];
 
   return (
-    <div className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-3 h-full">
       {cards.map((card, i) => {
         const Icon = card.icon;
-        const percentage = card.isDynamic ? 100 : Math.max(0, Math.min(100, (card.remaining / card.total) * 100));
+        const percentage = Math.max(0, Math.min(100, (card.remaining / card.total) * 100));
         
         return (
-          <div key={i} className="rounded-xl border bg-card shadow-sm p-4 flex flex-col justify-between hover:border-primary/20 transition-colors group">
-            <div className="flex items-center gap-2 mb-4">
-              <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center bg-muted/50 group-hover:bg-card transition-colors")}>
-                <Icon className={cn("w-4 h-4", card.color.replace('bg-', 'text-'))} />
+          <div key={i} className={cn("rounded-xl border shadow-sm p-4 flex flex-col justify-between hover:border-primary/50 transition-colors cursor-default flex-1 overflow-hidden", card.cardBg)}>
+            <div className="flex items-start justify-between">
+              <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">{t(card.title)}</span>
+              <div className={cn("p-2 rounded-md shrink-0 ml-2", card.bg, card.color)}>
+                <Icon className="w-4 h-4" />
               </div>
-              <h4 className="text-sm font-semibold text-foreground truncate">{t(card.title)}</h4>
             </div>
             
-            <div className="flex flex-col gap-2">
+            <div className="mt-4 flex flex-col gap-2">
               <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-bold">{card.remaining}</span>
-                {!card.isDynamic && <span className="text-xs text-muted-foreground">/ {card.total} {t('Remaining')}</span>}
-                {card.isDynamic && <span className="text-xs text-muted-foreground">{t('Available')}</span>}
+                <span className="text-2xl font-bold text-foreground">{card.remaining}</span>
+                <span className="text-xs text-muted-foreground">/ {card.total} {t('Remaining')}</span>
               </div>
               
-              {!card.isDynamic && (
-                <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                  <div 
-                    className={cn("h-full rounded-full transition-all duration-1000", card.color)}
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-              )}
+              <div className="w-full bg-white rounded-full h-1.5 overflow-hidden shadow-inner">
+                <div 
+                  className={cn("h-full rounded-full transition-all duration-1000", (card as any).progressBg || card.color.replace('text-', 'bg-').replace('600', '500'))}
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
             </div>
           </div>
         );

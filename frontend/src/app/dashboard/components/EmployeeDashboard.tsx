@@ -95,47 +95,8 @@ export function EmployeeDashboard({ stats }: { stats: any }) {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Main Left Column (Takes up 8 columns out of 12) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          
-          <div className="grid gap-6 md:grid-cols-2">
-            <AIInsightsCard insights={stats?.insights || []} />
-            
-            <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col justify-center">
-              <h3 className="text-lg font-semibold mb-2 text-primary flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5" />
-                Profile Completion
-              </h3>
-              <div className="w-full bg-muted rounded-full h-4 mt-4">
-                <div 
-                  className="bg-primary h-4 rounded-full transition-all duration-1000 relative" 
-                  style={{ width: `${stats?.profileCompletion || 0}%` }}
-                >
-                  <span className="absolute right-2 top-0 text-[10px] text-white font-bold leading-4">
-                    {stats?.profileCompletion || 0}%
-                  </span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mt-4">
-                {stats?.profileCompletion < 100 
-                  ? "Please complete your profile to unlock all features." 
-                  : "Your profile is fully complete. Great job!"}
-              </p>
-            </div>
-          </div>
 
           <div className="grid gap-6 md:grid-cols-2 h-[400px]">
-            <DashboardDataTable 
-              title="Attendance History (Last 7 Days)" 
-              data={stats?.attendanceHistory || []} 
-              columns={attendanceColumns}
-            />
-            <DashboardDataTable 
-              title="Recent Payslips" 
-              data={stats?.recentPayslips || []} 
-              columns={payslipColumns}
-            />
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 h-[350px]">
             <DashboardDataTable 
               title="Assigned Documents" 
               data={stats?.assignedDocuments || []} 
@@ -160,30 +121,16 @@ export function EmployeeDashboard({ stats }: { stats: any }) {
               </div>
             </div>
           </div>
-
+            <DashboardDataTable 
+              title="Attendance History (Last 7 Days)" 
+              data={stats?.attendanceHistory || []} 
+              columns={attendanceColumns}
+            />
         </div>
 
         {/* Right Sidebar Column (Takes up 4 columns out of 12) */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <CompanyAnnouncements announcements={stats?.announcements || []} />
-          
+        <div className="lg:col-span-4 flex flex-col gap-6">          
           <UpcomingHolidays holidays={stats?.holidays || []} />
-
-          <div className="rounded-xl border bg-card shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <QuickActionCard 
-                title="Apply Leave" 
-                icon={CalendarCheck} 
-                onClick={() => window.location.href = '/dashboard/leave-request'} 
-              />
-              <QuickActionCard 
-                title="My Documents" 
-                icon={FileText} 
-                onClick={() => window.location.href = '/dashboard/my-documents'} 
-              />
-            </div>
-          </div>
 
           <div className="rounded-xl border bg-card shadow-sm p-6">
             <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>

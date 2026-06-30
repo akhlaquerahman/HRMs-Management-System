@@ -24,7 +24,8 @@ import {
   TrendingUp,
   Megaphone,
   Bot,
-  AlertCircle
+  AlertCircle,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +58,7 @@ export default function LoginPage() {
   
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
+  const [otpTimer, setOtpTimer] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,6 +95,16 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [heroSlides.length]);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (otpSent && otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpTimer, otpSent]);
+
   const mutation = useMutation({
     mutationFn: (data: LoginFormData) => api.post('/auth/login', { email: data.email, password: data.password }),
     onSuccess: (response) => {
@@ -120,6 +132,7 @@ export default function LoginPage() {
       setOtpSent(true);
       setErrorMsg('');
       setIsLoading(false);
+      setOtpTimer(60);
     },
     onError: (error: any) => {
       setErrorMsg(error.response?.data?.message || 'Failed to send OTP.');
@@ -152,6 +165,10 @@ export default function LoginPage() {
   };
 
   const handleVerifyOtp = () => {
+    if (otpTimer === 0) {
+      setErrorMsg('OTP has expired. Please resend a new one.');
+      return;
+    }
     if (otpCode.length !== 6) {
       setErrorMsg('Please enter a valid 6-digit OTP.');
       return;
@@ -245,7 +262,7 @@ export default function LoginPage() {
             {/* Pagination Dots */}
             {heroSlides.length > 0 && (
               <div className="absolute bottom-0 left-0 flex gap-2">
-                {heroSlides.map((_, i) => (
+                {heroSlides.map((_: any, i: number) => (
                   <div 
                     key={i} 
                     className={`h-1.5 rounded-full transition-all duration-500 ${currentSlide === i ? 'w-8 bg-blue-500' : 'w-2 bg-white/20'}`}
@@ -266,7 +283,7 @@ export default function LoginPage() {
 
       {/* RIGHT SIDE - LOGIN FORM */}
       <div className="flex-1 flex flex-col justify-center items-center p-4 md:p-8 relative overflow-y-auto overflow-x-hidden bg-slate-50 dark:bg-[#0f172a]">
-        <div className="w-full max-w-[420px] lg:max-w-[440px] flex flex-col justify-center min-h-full">
+        <div className="w-full max-w-[460px] lg:max-w-[480px] xl:max-w-[500px] flex flex-col justify-center min-h-full">
           
           {/* Mobile Logo */}
           <div className="md:hidden flex flex-col items-center gap-3 mb-8">
@@ -277,7 +294,7 @@ export default function LoginPage() {
           </div>
 
           {/* Glassmorphism Form Card */}
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] p-8 lg:p-10 shadow-[0_8px_40px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_40px_rgb(0,0,0,0.2)] border border-white dark:border-slate-800">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] p-8 py-12 lg:p-12 lg:py-14 shadow-[0_8px_40px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_40px_rgb(0,0,0,0.2)] border border-white dark:border-slate-800 min-h-[580px] flex flex-col justify-center">
             
             <div className="mb-8">
               <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Welcome Back</h2>
@@ -442,7 +459,26 @@ export default function LoginPage() {
                         placeholder="••••••" 
                         className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-blue-500 shadow-none text-center tracking-[0.5em] font-black text-xl" 
                       />
-                      <p className="text-xs text-slate-500 text-center mt-2">OTP sent to your email. Valid for 5 minutes.</p>
+                      {otpTimer > 0 ? (
+                        <p className="text-xs text-slate-500 text-center mt-2">
+                          OTP valid for <span className="font-bold text-slate-700 dark:text-slate-300">00:{otpTimer.toString().padStart(2, '0')}</span>
+                        </p>
+                      ) : (
+                        <div className="flex flex-col items-center mt-2">
+                          <p className="text-xs text-red-500 font-semibold mb-2">OTP expired. Please resend.</p>
+                          <Button 
+                            type="button" 
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSendOtp}
+                            disabled={isLoading}
+                            className="text-xs font-semibold"
+                          >
+                            {isLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RotateCcw className="w-3 h-3 mr-1" />}
+                            Resend OTP
+                          </Button>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -482,18 +518,20 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex justify-center w-full">
-              <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'dummy.apps.googleusercontent.com'}>
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => setErrorMsg('Google Login Failed')}
-                  theme="outline"
-                  size="large"
-                  shape="rectangular"
-                  width="100%"
-                  text="continue_with"
-                />
-              </GoogleOAuthProvider>
+            <div className="flex justify-center w-full mt-2">
+              <div className="w-full flex justify-center">
+                <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'dummy.apps.googleusercontent.com'}>
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setErrorMsg('Google Login Failed')}
+                    theme="outline"
+                    size="large"
+                    shape="pill"
+                    width="320"
+                    text="continue_with"
+                  />
+                </GoogleOAuthProvider>
+              </div>
             </div>
             
           </div>

@@ -63,49 +63,7 @@ export function SuperAdminDashboard({ stats }: { stats: any }) {
 
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Main Left Column (Takes up 8 columns out of 12) */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          
-          <div className="grid gap-6 md:grid-cols-2">
-            <AIInsightsCard insights={stats?.insights || []} />
-            
-            {/* System Infrastructure Health */}
-            <div className="rounded-xl border bg-card shadow-sm p-6">
-              <h3 className="text-lg font-semibold mb-4 text-primary flex items-center gap-2">
-                <Server className="w-5 h-5" />
-                Infrastructure Health
-              </h3>
-              <div className="grid grid-cols-3 gap-4 h-full">
-                <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-muted/10">
-                  <Database className={`w-8 h-8 mb-2 ${stats?.systemStatus?.database === 'HEALTHY' ? 'text-green-500' : 'text-red-500'}`} />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase">Database</span>
-                  <span className="text-lg font-bold">{stats?.systemStatus?.database || 'OK'}</span>
-                </div>
-                <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-muted/10">
-                  <Activity className="w-8 h-8 mb-2 text-blue-500" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase">API Uptime</span>
-                  <span className="text-lg font-bold">{stats?.systemStatus?.api || '99.9%'}</span>
-                </div>
-                <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-muted/10">
-                  <Server className="w-8 h-8 mb-2 text-purple-500" />
-                  <span className="text-xs font-semibold text-muted-foreground uppercase">Server CPU</span>
-                  <span className="text-lg font-bold">{stats?.systemStatus?.cpu || '12'}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 h-[400px]">
-            <DashboardDataTable 
-              title="Recent Users" 
-              data={stats?.recentUsers || []} 
-              columns={userColumns}
-            />
-            <DashboardDataTable 
-              title="Audit Logs (Recent)" 
-              data={stats?.recentLogs || []} 
-              columns={logColumns}
-            />
-          </div>
+        <div className="lg:col-span-12 flex flex-col gap-6">
 
           <div className="grid gap-6 md:grid-cols-2 h-[350px]">
             <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col">
@@ -148,50 +106,21 @@ export function SuperAdminDashboard({ stats }: { stats: any }) {
             </div>
           </div>
 
-        </div>
-
-        {/* Right Sidebar Column (Takes up 4 columns out of 12) */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          
-          {/* Subscription Overview */}
-          <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col">
-            <h3 className="text-lg font-semibold mb-4 text-primary">Subscription Overview</h3>
-            <div className="flex flex-col gap-4">
-              <div className="flex justify-between items-center p-3 bg-muted/20 border rounded-lg">
-                <span className="text-sm font-medium">Current Plan</span>
-                <span className="text-sm font-bold bg-primary/10 text-primary px-2 py-1 rounded">Enterprise</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-muted/20 border rounded-lg">
-                <span className="text-sm font-medium">Billing Cycle</span>
-                <span className="text-sm font-bold text-muted-foreground">Annual</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-muted/20 border rounded-lg">
-                <span className="text-sm font-medium">Next Renewal</span>
-                <span className="text-sm font-bold text-muted-foreground">Dec 31, 2026</span>
-              </div>
-            </div>
+          <div className="grid gap-6 md:grid-cols-2 h-[400px]">
+            <DashboardDataTable 
+              title="Recent Users" 
+              data={stats?.recentUsers || []} 
+              columns={userColumns}
+            />
+            <DashboardDataTable 
+              title="Audit Logs (Recent)" 
+              data={stats?.recentLogs || []} 
+              columns={logColumns}
+            />
           </div>
 
-          <div className="rounded-xl border bg-card shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <QuickActionCard 
-                title="System Settings" 
-                icon={Settings} 
-                onClick={() => {}} 
-              />
-              <QuickActionCard 
-                title="View Logs" 
-                icon={HardDrive} 
-                onClick={() => {}} 
-              />
-            </div>
-          </div>
 
-          <div className="rounded-xl border bg-card shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Critical Alerts & Logs</h3>
-            <ActivityTimeline activities={stats?.recentActivities || []} />
-          </div>
+
         </div>
       </div>
     </div>

@@ -48,20 +48,13 @@ export function DocumentVaultClient() {
   return (
     <div className="space-y-6">
       <PageHeader 
-        title={t("My Documents")} 
-        subtitle={t("Securely manage, upload and access all your personal and employment documents.")}
+        title="Document Vault" 
+        description="Securely store and manage your official documents."
         showCreate={false}
         showSearch={false}
         actionButton={
           <div className="flex gap-2">
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              {t("Download All")}
-            </Button>
-            <Button variant="outline" className="hidden sm:inline-flex">
-              <Share2 className="w-4 h-4 mr-2" />
-              {t("Secure Link")}
-            </Button>
+
             <Button onClick={() => setIsUploadModalOpen(true)}>
               <UploadCloud className="w-4 h-4 mr-2" />
               {t("Upload Document")}

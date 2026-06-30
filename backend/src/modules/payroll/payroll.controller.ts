@@ -3,6 +3,27 @@ import { AuthRequest } from '../../middlewares/authMiddleware';
 import { ApiResponse } from '../../utils/ApiResponse';
 import * as payrollService from './payroll.service';
 
+export const bulkCreatePayroll = async (req: AuthRequest, res: Response) => {
+  try {
+    const rawRole = req.user?.role || '';
+    const userRole = typeof rawRole === 'string' ? rawRole.toUpperCase().trim().replace(/\s+/g, '_') : '';
+    
+    if (userRole !== 'HR_MANAGER' && userRole !== 'SUPER_ADMIN' && userRole !== 'HR_ADMIN') {
+      return res.status(403).json(new ApiResponse(false, "Unauthorized to process payroll"));
+    }
+
+    const records = req.body.records;
+    if (!Array.isArray(records) || records.length === 0) {
+      return res.status(400).json(new ApiResponse(false, "No records provided"));
+    }
+    
+    const result = await payrollService.bulkCreatePayrollRecords(records);
+    return res.status(201).json(new ApiResponse(true, "Bulk payroll processed", result));
+  } catch (error: any) {
+    return res.status(500).json(new ApiResponse(false, error.message || "Failed to process bulk payroll"));
+  }
+};
+
 export const getPayrollSummary = async (req: AuthRequest, res: Response) => {
   try {
     const rawRole = req.user?.role || '';
@@ -59,5 +80,21 @@ export const createPayrollQuery = async (req: AuthRequest, res: Response) => {
     return res.status(201).json(new ApiResponse(true, "Query submitted successfully", query));
   } catch (error: any) {
     return res.status(500).json(new ApiResponse(false, error.message || "Failed to create query"));
+  }
+};
+
+export const createPayrollRecord = async (req: AuthRequest, res: Response) => {
+  try {
+    const rawRole = req.user?.role || '';
+    const userRole = typeof rawRole === 'string' ? rawRole.toUpperCase().trim().replace(/\s+/g, '_') : '';
+    
+    if (userRole !== 'HR_MANAGER' && userRole !== 'SUPER_ADMIN' && userRole !== 'HR_ADMIN') {
+      return res.status(403).json(new ApiResponse(false, "Unauthorized to process payroll"));
+    }
+
+    const payrollRecord = await payrollService.createPayrollRecord(req.body);
+    return res.status(201).json(new ApiResponse(true, "Salary processed and payslip sent successfully", payrollRecord));
+  } catch (error: any) {
+    return res.status(500).json(new ApiResponse(false, error.message || "Failed to process salary"));
   }
 };

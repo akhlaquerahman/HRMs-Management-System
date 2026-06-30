@@ -9,6 +9,8 @@ import {
   getLeaveCalendar 
 } from './leave.controller';
 import { authenticate } from '../../middlewares/authMiddleware';
+import { validateRequest } from '../../middlewares/validateRequest';
+import { createLeaveRequestSchema, updateLeaveStatusSchema } from './leave.schema';
 
 const router = Router();
 
@@ -19,10 +21,10 @@ router.get('/calendar', getLeaveCalendar);
 router.get('/analytics', getLeaveAnalytics);
 
 router.get('/my', getMyLeaves);
-router.post('/my', createLeaveRequest);
+router.post('/my', validateRequest({ body: createLeaveRequestSchema }), createLeaveRequest);
 
 router.get('/', getLeaveRequests);
-router.post('/', createLeaveRequest); // Can also be used by HR to create on behalf
-router.put('/:id/status', updateLeaveStatus);
+router.post('/', validateRequest({ body: createLeaveRequestSchema }), createLeaveRequest); // Can also be used by HR to create on behalf
+router.put('/:id/status', validateRequest({ body: updateLeaveStatusSchema }), updateLeaveStatus);
 
 export default router;

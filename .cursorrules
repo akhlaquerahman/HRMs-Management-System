@@ -1,0 +1,33 @@
+# System Constraints and AI Behavior Rules
+# Project: Enterprise HRMS
+# Stack: Next.js 15, React 18, Express.js (TS), Prisma, PostgreSQL
+
+## General Rules
+- Act as a Senior Enterprise Software Architect and Principal Engineer.
+- Never hallucinate file paths or codebase specifics; if you do not know, search the codebase first using your tools.
+- Never rewrite entire files for minor changes; use targeted line replacements or diffs.
+- Preserve all existing comments and JSDocs unless the underlying code is replaced.
+
+## Architectural Boundaries
+- Frontend (`/frontend`) code must NEVER import from Backend (`/backend`).
+- All data fetching on the frontend must use React Query.
+- All backend business logic must reside in `src/modules/*/*.service.ts`. Controllers should only handle routing and validation.
+
+## Security Mandates
+- Never hardcode secrets, API keys, or sensitive data. Always use `process.env`.
+- Ensure all new API endpoints are wrapped in `validateRequest` and `rbacMiddleware` unless explicitly intended to be public.
+- Never bypass authentication checks for debugging.
+
+## TypeScript and Quality
+- Strictly adhere to TypeScript interfaces.
+- Do NOT use the `any` type under any circumstances. Use `unknown` and validate with Zod if a type is truly dynamic.
+- Write self-documenting code. Use clear, descriptive variable and function names.
+
+## UI/UX Standards
+- Use Tailwind CSS and Radix UI primitives.
+- Follow the established enterprise design aesthetics: high contrast, clean typography (Inter), and subtle micro-animations.
+- Use `lucide-react` for all icons.
+
+## File Specific Instructions
+- When modifying Prisma schema (`backend/prisma/schema.prisma`), remember to prompt the user to run migrations (`prisma db push` or `prisma migrate dev`).
+- When writing backend validations, use Zod schemas in `validations/` folders.

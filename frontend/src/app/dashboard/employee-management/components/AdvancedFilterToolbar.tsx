@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,24 @@ export function AdvancedFilterToolbar({ filters, onFilterChange, onReset }: Adva
     fetchSelectOptions();
   }, []);
 
+  const [localSearch, setLocalSearch] = useState(filters.search || '');
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (filters.search !== localSearch) {
+        onFilterChange('search', localSearch);
+      }
+    }, 400); // 400ms debounce
+    return () => clearTimeout(timer);
+  }, [localSearch, onFilterChange, filters.search]);
+
+  useEffect(() => {
+    // Sync if filters reset externally
+    if (filters.search === '') {
+      setLocalSearch('');
+    }
+  }, [filters.search]);
+
   return (
     <div className="bg-card border rounded-xl p-4 shadow-sm space-y-4">
       <div className="flex flex-col md:flex-row gap-4">
@@ -39,8 +57,8 @@ export function AdvancedFilterToolbar({ filters, onFilterChange, onReset }: Adva
           <Input 
             placeholder={t("Search by Name, Email, or ID...")} 
             className="pl-9 bg-background w-full"
-            value={filters.search}
-            onChange={(e) => onFilterChange('search', e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
           />
         </div>
         

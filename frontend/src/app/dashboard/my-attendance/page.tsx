@@ -11,7 +11,7 @@ import api from '@/lib/axios';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogIn, LogOut, MapPin } from 'lucide-react';
+import { LogIn, LogOut, MapPin, Loader2 } from 'lucide-react';
 
 import { KPICards } from './components/KPICards';
 import { AttendanceTable } from './components/AttendanceTable';
@@ -24,6 +24,9 @@ export default function MyAttendancePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [periodFilter, setPeriodFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+
+  const [isPunchingIn, setIsPunchingIn] = useState(false);
+  const [isPunchingOut, setIsPunchingOut] = useState(false);
 
   // Status API (Live Timer)
   const { data: statusData, isLoading: statusLoading } = useQuery({
@@ -51,6 +54,7 @@ export default function MyAttendancePage() {
   });
 
   const handlePunchIn = async () => {
+    setIsPunchingIn(true);
     try {
       await api.post('/attendance/punch-in', {});
       toast.success("Checked in successfully!");
@@ -59,10 +63,13 @@ export default function MyAttendancePage() {
       queryClient.invalidateQueries({ queryKey: ['attendance_summary'] });
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Error punching in");
+    } finally {
+      setIsPunchingIn(false);
     }
   };
 
   const handlePunchOut = async () => {
+    setIsPunchingOut(true);
     try {
       await api.post('/attendance/punch-out');
       toast.success("Checked out successfully!");
@@ -72,6 +79,8 @@ export default function MyAttendancePage() {
       queryClient.invalidateQueries({ queryKey: ['attendance_charts'] });
     } catch (error: any) {
       toast.error(error?.response?.data?.message || "Error punching out");
+    } finally {
+      setIsPunchingOut(false);
     }
   };
 
@@ -88,9 +97,11 @@ export default function MyAttendancePage() {
   const filteredRecords = (records || []).filter((item: any) => {
     let matchesPeriod = true;
     if (periodFilter) {
-      const [year, month] = periodFilter.split('-');
+      const selectedDate = new Date(periodFilter);
       const itemDate = new Date(item.date);
-      matchesPeriod = itemDate.getFullYear() === parseInt(year) && (itemDate.getMonth() + 1) === parseInt(month);
+      matchesPeriod = itemDate.getFullYear() === selectedDate.getFullYear() && 
+                      itemDate.getMonth() === selectedDate.getMonth() &&
+                      itemDate.getDate() === selectedDate.getDate();
     }
 
     const isPunchedIn = item.logs && item.logs.length > 0 && !item.logs[item.logs.length - 1].punchOut;
@@ -135,6 +146,31 @@ export default function MyAttendancePage() {
   const currentState = statusData?.currentState || "NOT_PUNCHED_IN";
   const currentRecord = statusData?.record;
   const punchInLog = currentRecord?.logs?.find((l: any) => !l.punchOut);
+  const activeShift = statusData?.shift;
+
+  let isCheckInAllowed = true;
+  if (currentState === "NOT_PUNCHED_IN" && activeShift) {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const [startHour, startMin] = activeShift.startTime.split(':').map(Number);
+    const [endHour, endMin] = activeShift.endTime.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMin;
+    let endMinutes = endHour * 60 + endMin;
+    
+    let isNightShift = endMinutes < startMinutes;
+    
+    isCheckInAllowed = false;
+    
+    if (isNightShift) {
+      if (currentMinutes >= startMinutes || currentMinutes <= endMinutes) {
+         isCheckInAllowed = true;
+      }
+    } else {
+      if (currentMinutes >= startMinutes && currentMinutes <= endMinutes) {
+         isCheckInAllowed = true;
+      }
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6 max-w-[1600px] mx-auto pb-10">
@@ -149,23 +185,34 @@ export default function MyAttendancePage() {
           {statusLoading ? (
             <div className="h-10 w-32 bg-muted animate-pulse rounded-md" />
           ) : currentState === "NOT_PUNCHED_IN" ? (
-            <Button size="lg" className="font-semibold shadow-lg" onClick={handlePunchIn}>
-              <LogIn className="w-4 h-4 mr-2" /> Check In
-            </Button>
+            !isCheckInAllowed ? (
+              <span className="text-sm font-semibold text-destructive px-4 py-2 border border-destructive/20 bg-destructive/10 rounded-lg">
+                Shift Time: {activeShift?.startTime} - {activeShift?.endTime}
+              </span>
+            ) : (
+              <Button size="lg" className="font-semibold shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handlePunchIn} disabled={isPunchingIn}>
+                {isPunchingIn ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <LogIn className="w-4 h-4 mr-2" />} Check In
+              </Button>
+            )
           ) : currentState === "PUNCHED_IN" ? (
             <div className="flex items-center gap-4 bg-muted/30 border rounded-xl p-1.5 pr-2 shadow-sm">
               <div className="flex flex-col pl-3 hidden md:flex">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <MapPin className="w-3 h-3 text-primary" />
                   <span>HQ Office</span>
+                  {activeShift && (
+                    <span className="ml-2 px-1.5 py-0.5 bg-muted border rounded-md text-[10px]">
+                      {activeShift.name} ({activeShift.startTime} - {activeShift.endTime})
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm font-semibold mt-0.5">
                   Working since {currentRecord?.logs?.[0]?.punchIn ? format(new Date(currentRecord.logs[0].punchIn), 'hh:mm a') : ''}
                 </div>
               </div>
               <div className="h-8 w-px bg-border hidden md:block mx-1"></div>
-              <Button size="default" variant="destructive" className="font-semibold rounded-lg shadow-md" onClick={handlePunchOut}>
-                <LogOut className="w-4 h-4 mr-2" /> Check Out
+              <Button size="default" variant="destructive" className="font-semibold rounded-lg shadow-md" onClick={handlePunchOut} disabled={isPunchingOut}>
+                {isPunchingOut ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <LogOut className="w-4 h-4 mr-2" />} Check Out
               </Button>
             </div>
           ) : currentState === "ON_BREAK" ? (
@@ -193,7 +240,8 @@ export default function MyAttendancePage() {
             />
           </div>
           <input 
-            type="month" 
+            type="date" 
+            max={new Date().toLocaleDateString('en-CA')}
             className="h-10 rounded-md border bg-card px-3 py-2 text-sm shadow-sm w-full md:w-[200px] focus:ring-2 focus:ring-primary focus:outline-none"
             value={periodFilter}
             onChange={(e) => setPeriodFilter(e.target.value)}

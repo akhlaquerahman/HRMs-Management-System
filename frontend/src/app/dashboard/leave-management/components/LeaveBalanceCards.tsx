@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { BriefcaseMedical, CalendarDays, Plane, Award, Building } from 'lucide-react';
+import { BriefcaseMedical, CalendarDays, Plane, Award, Building, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LeaveBalanceCardsProps {
@@ -15,17 +15,9 @@ export function LeaveBalanceCards({ balances, loading }: LeaveBalanceCardsProps)
 
   if (loading) {
     return (
-      <div className="grid gap-4 md:grid-cols-5">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="rounded-xl border bg-card p-4 animate-pulse flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-muted" />
-              <div className="w-1/2 h-4 rounded bg-muted" />
-            </div>
-            <div className="w-full h-2 rounded bg-muted mt-2" />
-            <div className="w-1/3 h-3 rounded bg-muted self-end" />
-          </div>
-        ))}
+      <div className="w-full h-24 flex items-center justify-center gap-3">
+        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+        <p className="text-muted-foreground font-medium animate-pulse">Loading balances...</p>
       </div>
     );
   }
@@ -66,7 +58,7 @@ export function LeaveBalanceCards({ balances, loading }: LeaveBalanceCardsProps)
                 <span className="text-xs text-muted-foreground">/ {card.total} {t('Remaining')}</span>
               </div>
               
-              <div className="w-full bg-white rounded-full h-1.5 overflow-hidden shadow-inner">
+              <div className="w-full bg-white dark:bg-slate-900 rounded-full h-1.5 overflow-hidden shadow-inner">
                 <div 
                   className={cn("h-full rounded-full transition-all duration-1000", (card as any).progressBg || card.color.replace('text-', 'bg-').replace('600', '500'))}
                   style={{ width: `${percentage}%` }}

@@ -45,7 +45,7 @@ export function PaySalaryModal({ isOpen, onClose }: PaySalaryModalProps) {
     enabled: isOpen
   });
 
-  const employees = employeesRes?.data || [];
+  const employees = Array.isArray(employeesRes?.data) ? employeesRes.data : (employeesRes?.data?.data || []);
 
   const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<PaySalaryFormData>({
     resolver: zodResolver(paySalarySchema),

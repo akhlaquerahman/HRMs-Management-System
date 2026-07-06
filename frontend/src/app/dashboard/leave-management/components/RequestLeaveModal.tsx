@@ -45,9 +45,9 @@ export function RequestLeaveModal({ isOpen, onClose, onSubmit, isLoading, isHR }
     enabled: !!isHR
   });
 
-  const employeesData = Array.isArray(employeesDataResponse) 
-    ? employeesDataResponse 
-    : (employeesDataResponse?.data || []);
+  const employeesData = Array.isArray(employeesDataResponse?.data) 
+    ? employeesDataResponse.data 
+    : (employeesDataResponse?.data?.data || []);
 
   const isStep1Valid = formData.leaveType && formData.startDate && formData.endDate && (isHR ? formData.employeeId : true);
   const isStep2Valid = formData.description.length > 5;
@@ -69,6 +69,8 @@ export function RequestLeaveModal({ isOpen, onClose, onSubmit, isLoading, isHR }
       }, 300);
     }
   };
+
+  const todayString = new Date().toLocaleDateString('en-CA'); // Gets local YYYY-MM-DD
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -129,6 +131,7 @@ export function RequestLeaveModal({ isOpen, onClose, onSubmit, isLoading, isHR }
                   <Label>{t("Start Date")} *</Label>
                   <Input 
                     type="date" 
+                    min={todayString}
                     value={formData.startDate}
                     onChange={(e) => setFormData(p => ({ ...p, startDate: e.target.value }))}
                   />
@@ -137,6 +140,7 @@ export function RequestLeaveModal({ isOpen, onClose, onSubmit, isLoading, isHR }
                   <Label>{t("End Date")} *</Label>
                   <Input 
                     type="date" 
+                    min={formData.startDate || todayString}
                     value={formData.endDate}
                     onChange={(e) => setFormData(p => ({ ...p, endDate: e.target.value }))}
                   />

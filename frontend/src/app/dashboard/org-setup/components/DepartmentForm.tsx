@@ -31,8 +31,8 @@ export function DepartmentForm({ onSuccess, initialData }: { onSuccess: () => vo
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch locations and employees for dropdowns
-  const { data: employeesRes } = useQuery({ queryKey: ["activeEmployees"], queryFn: async () => (await api.get("/employees?status=ACTIVE&limit=100")).data });
-  const employees = employeesRes?.data || [];
+  const { data: employeesRes } = useQuery({ queryKey: ["activeEmployees", "all"], queryFn: async () => (await api.get("/employees?status=ACTIVE&limit=10000")).data });
+  const employees = Array.isArray(employeesRes?.data) ? employeesRes.data : (employeesRes?.data?.data || []);
 
   // Auto-generate Department Code based on name
   const departmentName = watch("name");

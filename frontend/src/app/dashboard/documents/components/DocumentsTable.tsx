@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { FileText, MoreVertical, Eye, Edit, Trash2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowUpDown, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { FileText, MoreVertical, Eye, Edit, Trash2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowUpDown, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,32 @@ export function DocumentsTable({ data, loading, onView, onEdit, onDelete }: Docu
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
+  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
+  const selectedCount = Object.values(selectedRows).filter(Boolean).length;
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedRows(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const all = data.reduce((acc: any, curr: any) => ({ ...acc, [curr.id]: true }), {});
+      setSelectedRows(all);
+    } else {
+      setSelectedRows({});
+    }
+  };
+
+  const handleBulkDelete = () => {
+    const ids = Object.keys(selectedRows).filter(id => selectedRows[id]);
+    if (ids.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${ids.length} selected documents?`)) {
+      ids.forEach(id => onDelete?.(id));
+      setSelectedRows({});
+    }
+  };
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -75,14 +102,10 @@ export function DocumentsTable({ data, loading, onView, onEdit, onDelete }: Docu
 
   if (loading) {
     return (
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-        <div className="p-4 bg-muted/20 border-b">
-          <div className="h-6 bg-muted rounded w-1/4" />
-        </div>
-        <div className="p-4 space-y-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-12 bg-muted/40 rounded animate-pulse" />
-          ))}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden p-12">
+        <div className="w-full h-[300px] flex flex-col items-center justify-center gap-4">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Loading documents...</p>
         </div>
       </div>
     );
@@ -117,12 +140,34 @@ export function DocumentsTable({ data, loading, onView, onEdit, onDelete }: Docu
   };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead className="bg-muted/30 text-muted-foreground text-xs uppercase font-semibold sticky top-0">
-            <tr>
-              <th className="px-4 py-3 cursor-pointer hover:text-foreground transition-colors group select-none" onClick={() => handleSort('employeeName')}>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-sm font-semibold text-foreground">
+          Showing <span className="text-blue-600 font-bold">{data?.length || 0}</span> Documents
+        </h3>
+      </div>
+      {selectedCount > 0 && (
+        <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-top-4">
+          <span className="text-sm font-semibold text-blue-700">{selectedCount} document(s) selected</span>
+          <div className="flex items-center gap-2">
+            <Button variant="destructive" size="sm" className="h-8" onClick={handleBulkDelete}>
+              <Trash2 className="w-4 h-4 mr-1" /> Delete Selected
+            </Button>
+          </div>
+        </div>
+      )}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left whitespace-nowrap">
+            <thead className="bg-muted/30 text-muted-foreground text-xs uppercase font-semibold sticky top-0">
+              <tr>
+                <th className="px-4 py-3 w-10 pl-4">
+                  <Checkbox 
+                    checked={data?.length > 0 && data.every((d: any) => selectedRows[d.id])}
+                    onCheckedChange={toggleSelectAll} 
+                  />
+                </th>
+                <th className="px-4 py-3 cursor-pointer hover:text-foreground transition-colors group select-none" onClick={() => handleSort('employeeName')}>
                 Employee <SortIcon columnKey="employeeName" />
               </th>
               <th className="px-4 py-3">Email</th>
@@ -139,6 +184,9 @@ export function DocumentsTable({ data, loading, onView, onEdit, onDelete }: Docu
           <tbody className="divide-y">
             {paginatedData.map((doc) => (
               <tr key={doc.id} className="hover:bg-muted/20 transition-colors group">
+                <td className="px-4 py-3 pl-4" onClick={(e) => toggleSelect(doc.id, e)}>
+                  <Checkbox checked={!!selectedRows[doc.id]} onCheckedChange={(c) => setSelectedRows(p => ({...p, [doc.id]: !!c}))} />
+                </td>
                 <td className="px-4 py-3 font-medium">
                   {doc.employee?.firstName} {doc.employee?.lastName}
                 </td>
@@ -236,6 +284,7 @@ export function DocumentsTable({ data, loading, onView, onEdit, onDelete }: Docu
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

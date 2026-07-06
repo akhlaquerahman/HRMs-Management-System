@@ -9,6 +9,10 @@ import { useTranslation } from 'react-i18next';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { emailValidation, employeeNameValidation, passwordValidation } from "@/lib/validations/common.schema";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -22,21 +26,32 @@ export function UserModal({ isOpen, onClose, user, roles }: UserModalProps) {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [formData, setFormData] = useState({ 
-    firstName: "", 
-    lastName: "", 
-    email: "", 
-    password: "", 
-    roleId: "", 
-    companyName: "", 
-    companyWebsite: "", 
-    companyAddress: "", 
-    companyPhone: "" 
+  const userSchema = z.object({
+    firstName: employeeNameValidation,
+    lastName: employeeNameValidation,
+    email: emailValidation,
+    password: user ? z.string().optional().refine(val => !val || val.length >= 8, "Password must be at least 8 characters (if provided)") : passwordValidation,
+    roleId: z.string().min(1, "Role is required"),
+    companyName: z.string().optional(),
+    companyWebsite: z.string().optional(),
+    companyAddress: z.string().optional(),
+    companyPhone: z.string().optional(),
+  });
+
+  type UserFormData = z.infer<typeof userSchema>;
+
+  const { register, handleSubmit, formState: { errors, isValid }, reset, setValue } = useForm<UserFormData>({
+    resolver: zodResolver(userSchema),
+    mode: "onBlur",
+    defaultValues: { 
+      firstName: "", lastName: "", email: "", password: "", roleId: "", 
+      companyName: "", companyWebsite: "", companyAddress: "", companyPhone: "" 
+    }
   });
 
   useEffect(() => {
-    if (user) {
-      setFormData({
+    if (user && isOpen) {
+      reset({
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
@@ -47,20 +62,20 @@ export function UserModal({ isOpen, onClose, user, roles }: UserModalProps) {
         companyAddress: user.companyAddress || "",
         companyPhone: user.companyPhone || ""
       });
-    } else {
-      setFormData({ 
-        firstName: "", lastName: "", email: "", password: "", roleId: "", companyName: "", companyWebsite: "", companyAddress: "", companyPhone: "" 
+    } else if (isOpen) {
+      reset({ 
+        firstName: "", lastName: "", email: "", password: "", roleId: "", 
+        companyName: "", companyWebsite: "", companyAddress: "", companyPhone: "" 
       });
     }
-  }, [user, isOpen]);
+  }, [user, isOpen, reset]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: UserFormData) => {
     setIsSubmitting(true);
     try {
       if (user) {
         // Edit mode (exclude password if empty)
-        const payload = { ...formData };
+        const payload = { ...data };
         if (!payload.password) {
           delete (payload as any).password;
         }
@@ -68,7 +83,7 @@ export function UserModal({ isOpen, onClose, user, roles }: UserModalProps) {
         toast.success(t("User updated successfully"));
       } else {
         // Create mode
-        await api.post("/admin/users", formData);
+        await api.post("/admin/users", data);
         toast.success(t("User created successfully"));
       }
       queryClient.invalidateQueries({ queryKey: ["admin_users"] });
@@ -94,7 +109,7 @@ export function UserModal({ isOpen, onClose, user, roles }: UserModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             <div className="col-span-1 md:col-span-2">
@@ -103,30 +118,35 @@ export function UserModal({ isOpen, onClose, user, roles }: UserModalProps) {
 
             <div>
               <label className="text-sm font-medium mb-1 block">{t("First Name")} *</label>
-              <Input required placeholder="E.g. John" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
+              <Input {...register("firstName")} placeholder="E.g. John" />
+              {errors.firstName && <span className="text-xs text-red-500">{errors.firstName.message}</span>}
             </div>
 
             <div>
               <label className="text-sm font-medium mb-1 block">{t("Last Name")} *</label>
-              <Input required placeholder="E.g. Doe" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
+              <Input {...register("lastName")} placeholder="E.g. Doe" />
+              {errors.lastName && <span className="text-xs text-red-500">{errors.lastName.message}</span>}
             </div>
 
             <div>
               <label className="text-sm font-medium mb-1 block">{t("Email Address")} *</label>
-              <Input required type="email" placeholder="john.doe@company.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+              <Input {...register("email")} type="email" placeholder="john.doe@company.com" />
+              {errors.email && <span className="text-xs text-red-500">{errors.email.message}</span>}
             </div>
 
             <div>
               <label className="text-sm font-medium mb-1 block">{user ? t("Password (Leave blank to keep current)") : t("Password *")}</label>
-              <Input required={!user} type="password" placeholder="••••••••" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+              <Input {...register("password")} type="password" placeholder="••••••••" />
+              {errors.password && <span className="text-xs text-red-500">{errors.password.message}</span>}
             </div>
 
             <div>
               <label className="text-sm font-medium mb-1 block">{t("Role")} *</label>
-              <select required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value={formData.roleId} onChange={e => setFormData({...formData, roleId: e.target.value})}>
+              <select {...register("roleId")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                 <option value="" disabled>Select Role</option>
                 {roles.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
+              {errors.roleId && <span className="text-xs text-red-500">{errors.roleId.message}</span>}
             </div>
 
             <div className="col-span-1 md:col-span-2 mt-4">
@@ -135,29 +155,41 @@ export function UserModal({ isOpen, onClose, user, roles }: UserModalProps) {
 
             <div>
               <label className="text-sm font-medium mb-1 block">{t("Company Name")}</label>
-              <Input placeholder="E.g. Acme Corp" value={formData.companyName} onChange={e => setFormData({...formData, companyName: e.target.value})} />
+              <Input {...register("companyName")} placeholder="E.g. Acme Corp" />
             </div>
 
             <div>
               <label className="text-sm font-medium mb-1 block">{t("Company Website")}</label>
-              <Input placeholder="https://..." value={formData.companyWebsite} onChange={e => setFormData({...formData, companyWebsite: e.target.value})} />
+              <Input {...register("companyWebsite")} placeholder="https://..." />
             </div>
 
             <div>
               <label className="text-sm font-medium mb-1 block">{t("Company Phone")}</label>
-              <Input placeholder="+1 234 567 8900" value={formData.companyPhone} onChange={e => setFormData({...formData, companyPhone: e.target.value})} />
+              <Input 
+                {...(() => {
+                  const { onChange, ...rest } = register("companyPhone");
+                  return {
+                    ...rest,
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                      e.target.value = e.target.value.replace(/[^0-9+\s()-]/g, '');
+                      onChange(e);
+                    }
+                  }
+                })()} 
+                placeholder="+1 234 567 8900" 
+              />
             </div>
 
             <div>
               <label className="text-sm font-medium mb-1 block">{t("Company Address")}</label>
-              <Input placeholder="123 Business Blvd" value={formData.companyAddress} onChange={e => setFormData({...formData, companyAddress: e.target.value})} />
+              <Input {...register("companyAddress")} placeholder="123 Business Blvd" />
             </div>
 
           </div>
 
           <DialogFooter className="mt-6 border-t pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>{t("Cancel")}</Button>
-            <Button type="submit" disabled={isSubmitting} className="min-w-[120px] bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" disabled={isSubmitting || !isValid} className="min-w-[120px] bg-blue-600 hover:bg-blue-700">
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

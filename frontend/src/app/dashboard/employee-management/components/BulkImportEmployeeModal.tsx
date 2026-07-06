@@ -115,22 +115,22 @@ export function BulkImportEmployeeModal({ isOpen, onClose }: { isOpen: boolean, 
               <div className="flex-1">
                 <h4 className="text-sm font-semibold text-blue-900 mb-1">1. Download Template</h4>
                 <p className="text-xs text-blue-700/80 mb-3">Get the official CSV template with all the required columns.</p>
-                <Button variant="outline" size="sm" className="bg-white hover:bg-gray-50 text-blue-700 border-blue-200" onClick={downloadTemplate}>
+                <Button variant="outline" size="sm" className="bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800/50 text-blue-700 border-blue-200" onClick={downloadTemplate}>
                   <Download className="w-4 h-4 mr-2" /> Download Template
                 </Button>
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-start gap-4">
+            <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-xl border border-gray-100 dark:border-slate-800 flex items-start gap-4">
               <div className="bg-gray-200 p-2 rounded-lg text-gray-600">
                 <UploadCloud className="w-5 h-5" />
               </div>
               <div className="flex-1 space-y-2">
-                <h4 className="text-sm font-semibold text-gray-900">2. Upload Filled Data</h4>
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100">2. Upload Filled Data</h4>
                 <Input 
                   type="file" 
                   accept=".csv" 
-                  className="bg-white"
+                  className="bg-white dark:bg-slate-900"
                   onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
                 />
               </div>
@@ -142,7 +142,7 @@ export function BulkImportEmployeeModal({ isOpen, onClose }: { isOpen: boolean, 
           <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
             <div className="border rounded-xl flex-1 overflow-auto shadow-sm w-full">
               <Table className="w-full min-w-[800px]">
-                <TableHeader className="bg-gray-50/80 sticky top-0 backdrop-blur-sm z-10 text-xs">
+                <TableHeader className="bg-gray-50 dark:bg-slate-800/80 sticky top-0 backdrop-blur-sm z-10 text-xs">
                   <TableRow>
                     <TableHead className="whitespace-nowrap">Emp ID</TableHead>
                     <TableHead className="whitespace-nowrap">Name</TableHead>
@@ -155,10 +155,10 @@ export function BulkImportEmployeeModal({ isOpen, onClose }: { isOpen: boolean, 
                 </TableHeader>
                 <TableBody>
                   {parsedRecords.map((record, index) => (
-                    <TableRow key={index} className="hover:bg-gray-50/50">
+                    <TableRow key={index} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
                       <TableCell className="font-medium text-xs whitespace-nowrap">{record.employeeId}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap">{record.firstName} {record.lastName}</TableCell>
-                      <TableCell className="text-xs text-gray-500 whitespace-nowrap">{record.email}</TableCell>
+                      <TableCell className="text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">{record.email}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap">{record.departmentName || "-"}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap text-gray-600">{record.designationName || "-"}</TableCell>
                       <TableCell className="text-xs whitespace-nowrap font-medium text-emerald-600">{record.baseSalary ? `$${Number(record.baseSalary).toLocaleString()}` : "-"}</TableCell>

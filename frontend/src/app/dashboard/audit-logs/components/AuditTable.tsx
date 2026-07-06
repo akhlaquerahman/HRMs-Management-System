@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -32,6 +32,15 @@ export function AuditTable({ data, loading, totalItems, currentPage, rowsPerPage
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
+  const selectedCount = Object.values(selectedRows).filter(Boolean).length;
+
+  const handleBulkExport = () => {
+    const ids = Object.keys(selectedRows).filter(id => selectedRows[id]);
+    if (ids.length === 0) return;
+    alert(`Exporting ${ids.length} selected audit logs...`);
+    setSelectedRows({});
+  };
+
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
@@ -57,27 +66,11 @@ export function AuditTable({ data, loading, totalItems, currentPage, rowsPerPage
 
   if (loading) {
     return (
-      <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50 border-b-border/50 hover:bg-muted/50">
-              <TableHead className="w-12 h-12"></TableHead>
-              <TableHead>Timestamp</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>User</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <TableRow key={i} className="animate-pulse h-16 border-b-border/50">
-                <TableCell><div className="w-4 h-4 rounded bg-muted"></div></TableCell>
-                <TableCell><div className="h-4 w-32 bg-muted rounded"></div></TableCell>
-                <TableCell><div className="h-4 w-48 bg-muted rounded"></div></TableCell>
-                <TableCell><div className="h-6 w-32 bg-muted rounded"></div></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="rounded-xl border bg-card shadow-sm p-12">
+        <div className="w-full h-[300px] flex flex-col items-center justify-center gap-4">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Loading audit logs...</p>
+        </div>
       </div>
     );
   }
@@ -105,7 +98,22 @@ export function AuditTable({ data, loading, totalItems, currentPage, rowsPerPage
   };
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-sm font-semibold text-foreground">
+          Showing <span className="text-blue-600 font-bold">{totalItems}</span> Audit Logs
+        </h3>
+      </div>
+      {selectedCount > 0 && (
+        <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-top-4">
+          <span className="text-sm font-semibold text-blue-700">{selectedCount} log(s) selected</span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={handleBulkExport}>
+              <Download className="w-4 h-4 mr-1" /> Export Selected
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="border rounded-xl bg-card shadow-sm flex flex-col overflow-hidden">
         <div className="overflow-x-auto flex-1">
           <Table>
@@ -154,7 +162,7 @@ export function AuditTable({ data, loading, totalItems, currentPage, rowsPerPage
                       </Button>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium text-gray-900 whitespace-nowrap">
+                      <span className="font-medium text-gray-900 dark:text-slate-100 whitespace-nowrap">
                         {format(new Date(log.timestamp), 'MMM dd, yyyy, hh:mm:ss a')}
                       </span>
                     </TableCell>
@@ -250,6 +258,6 @@ export function AuditTable({ data, loading, totalItems, currentPage, rowsPerPage
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

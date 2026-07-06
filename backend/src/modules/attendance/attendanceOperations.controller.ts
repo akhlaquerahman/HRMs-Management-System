@@ -153,7 +153,7 @@ export const getOperationsList = async (req: Request, res: Response) => {
     const records = await prisma.attendanceRecord.findMany({
       where: whereClause,
       include: {
-        employee: { include: { department: true, designation: true, shift: true } },
+        employee: { include: { department: true, designation: true, shift: true, user: { select: { profilePic: true } } } },
         logs: { orderBy: { punchIn: 'asc' } },
         breaks: { orderBy: { breakStart: 'asc' } },
         shift: true

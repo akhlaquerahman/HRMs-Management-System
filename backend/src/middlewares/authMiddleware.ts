@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import redis from '../lib/redis';
 
 // Extend the default Express Request to include our custom user data
 export interface AuthRequest extends Request {
@@ -7,7 +8,7 @@ export interface AuthRequest extends Request {
 }
 
 // Middleware function to check if the user is logged in
-export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   // Extract the token from the "Authorization: Bearer <token>" header
   const token = req.headers.authorization?.split(' ')[1];
   
@@ -17,10 +18,27 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   }
 
   try {
-    // Verify the token using our secret key to make sure it's valid and hasn't been tampered with
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    let decoded;
     
-    // Attach the decoded user information to the request so other parts of the app can use it
+    // Check if valid token is in cache
+    const cacheKey = `session:${token}`;
+    if (redis.status === 'ready') {
+      const cachedSession = await redis.get(cacheKey);
+      if (cachedSession) {
+        req.user = JSON.parse(cachedSession);
+        return next();
+      }
+    }
+
+    // Verify the token using our secret key
+    decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    
+    // Cache the decoded session for 15 minutes to save CPU cycles
+    if (redis.status === 'ready') {
+      redis.setex(cacheKey, 900, JSON.stringify(decoded)).catch(() => {});
+    }
+
+    // Attach the decoded user information to the request
     req.user = decoded;
     
     // Move on to the next function/route handler

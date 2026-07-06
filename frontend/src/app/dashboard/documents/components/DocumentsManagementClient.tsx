@@ -53,7 +53,7 @@ export function DocumentsManagementClient() {
   });
 
   const documents = documentsRes?.data || [];
-  const employees = employeesRes?.data || [];
+  const employees = Array.isArray(employeesRes?.data) ? employeesRes.data : (employeesRes?.data?.data || []);
   const documentTypes = documentTypesRes?.data || [];
 
   const filteredDocuments = documents.filter((doc: any) => {
@@ -181,9 +181,29 @@ export function DocumentsManagementClient() {
 
       <DocumentsKPICards metrics={kpiMetrics} loading={isLoadingDocs} />
 
-      {isCreating ? (
-        <form onSubmit={handleCreateSubmit} className="border p-6 rounded-xl bg-card flex flex-col gap-4 shadow-sm mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h3 className="text-xl font-semibold text-primary mb-2">{t("Upload New Document")}</h3>
+      <div className="grid grid-cols-1 gap-6">
+        <DocumentsFilterToolbar 
+          onSearch={(v) => handleFilterChange('search', v)}
+          onFilterChange={handleFilterChange}
+          onReset={handleResetFilters}
+          documentTypes={documentTypes}
+          onCreateClick={() => setIsCreating(true)}
+        />
+        <DocumentsTable 
+          data={filteredDocuments}
+          loading={isLoadingDocs}
+          onView={(d) => setViewDocument(d)}
+          onEdit={(d) => setEditDocument(d)}
+          onDelete={(id) => handleDelete(id)}
+        />
+      </div>
+
+      <Dialog open={isCreating} onOpenChange={(open) => !open && setIsCreating(false)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("Upload New Document")}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateSubmit} className="flex flex-col gap-4 mt-2">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
@@ -249,29 +269,13 @@ export function DocumentsManagementClient() {
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end mt-4 border-t pt-4">
+          <DialogFooter className="mt-4">
             <Button type="button" variant="outline" onClick={() => setIsCreating(false)}>{t("Cancel")}</Button>
             <Button type="submit" disabled={isSubmitting}>{isSubmitting ? t("Uploading...") : t("Upload Document")}</Button>
-          </div>
-        </form>
-      ) : (
-        <div className="grid grid-cols-1 gap-6">
-          <DocumentsFilterToolbar 
-            onSearch={(v) => handleFilterChange('search', v)}
-            onFilterChange={handleFilterChange}
-            onReset={handleResetFilters}
-            documentTypes={documentTypes}
-            onCreateClick={() => setIsCreating(true)}
-          />
-          <DocumentsTable 
-            data={filteredDocuments}
-            loading={isLoadingDocs}
-            onView={(d) => setViewDocument(d)}
-            onEdit={(d) => setEditDocument(d)}
-            onDelete={(id) => handleDelete(id)}
-          />
-        </div>
-      )}
+          </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* View Modal */}
       <Dialog open={!!viewDocument} onOpenChange={(open) => !open && setViewDocument(null)}>

@@ -103,12 +103,12 @@ export function BulkUploadModal({ isOpen, onClose }: { isOpen: boolean, onClose:
         
         {step === 1 && (
           <div className="space-y-6 py-4">
-            <div className="p-4 border rounded-lg bg-gray-50 flex items-center justify-between">
+            <div className="p-4 border rounded-lg bg-gray-50 dark:bg-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-blue-600" />
                 <div>
                   <p className="text-sm font-medium">CSV Template</p>
-                  <p className="text-xs text-gray-500">attendance_template.csv</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">attendance_template.csv</p>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={downloadTemplate}>
@@ -131,7 +131,7 @@ export function BulkUploadModal({ isOpen, onClose }: { isOpen: boolean, onClose:
           <div className="py-4 space-y-4">
             <div className="border rounded-lg max-h-[350px] overflow-auto">
               <Table>
-                <TableHeader className="bg-gray-50 sticky top-0">
+                <TableHeader className="bg-gray-50 dark:bg-slate-800 sticky top-0">
                   <TableRow>
                     <TableHead>Row</TableHead>
                     <TableHead>Emp ID</TableHead>
@@ -144,7 +144,7 @@ export function BulkUploadModal({ isOpen, onClose }: { isOpen: boolean, onClose:
                 <TableBody>
                   {parsedRecords.map((r, i) => (
                     <TableRow key={i}>
-                      <TableCell className="text-gray-500">{i+1}</TableCell>
+                      <TableCell className="text-gray-500 dark:text-slate-400">{i+1}</TableCell>
                       <TableCell className="font-medium text-blue-600">{r.employeeId}</TableCell>
                       <TableCell>{r.date}</TableCell>
                       <TableCell>{r.punchIn ? new Date(r.punchIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--'}</TableCell>

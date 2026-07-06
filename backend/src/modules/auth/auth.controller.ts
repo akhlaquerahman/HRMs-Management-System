@@ -119,9 +119,13 @@ export const forgotPasswordHandler = async (req: Request, res: Response, next: N
   try {
     const data = req.body;
     await authService.requestPasswordReset(data.email);
-    res.status(200).json(new ApiResponse(true, 'If an account exists, a reset link has been sent'));
+    res.status(200).json(new ApiResponse(true, 'OTP sent to your email successfully'));
   } catch (error: any) {
-    next(error);
+    if (error.message === 'Account not found') {
+      res.status(404).json(new ApiResponse(false, error.message));
+    } else {
+      next(error);
+    }
   }
 };
 

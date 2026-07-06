@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from 'react';
+
 import { useAuthStore } from '@/store/authStore';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +31,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet';
+import Sidebar from './Sidebar';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -36,6 +40,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { t, i18n } = useTranslation();
   const { setTheme, theme } = useTheme();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -65,9 +70,16 @@ export default function Navbar() {
     <header className="flex h-16 items-center justify-between px-6 bg-card border-b shadow-sm shrink-0">
       {/* Left */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="h-5 w-5" />
-        </Button>
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64 border-none">
+            <Sidebar className="w-full h-full" onNavigate={() => setIsMobileMenuOpen(false)} />
+          </SheetContent>
+        </Sheet>
         <div className="hidden md:flex items-center text-base text-muted-foreground gap-2">
           {breadcrumbs.map((crumb, index) => (
             <div key={index} className="flex items-center gap-2">

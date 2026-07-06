@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { Eye, FileText, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowUpDown, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Select,
@@ -37,15 +37,22 @@ export function DocumentTable({ data, loading, onView, isHR }: { data: any[], lo
   }, [data, sortConfig]);
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading documents...</div>;
+    return (
+      <div className="rounded-xl border bg-card shadow-sm p-12">
+        <div className="w-full h-[300px] flex flex-col items-center justify-center gap-4">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Loading documents...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="p-12 text-center border rounded-xl bg-white flex flex-col items-center justify-center">
+      <div className="p-12 text-center border rounded-xl bg-white dark:bg-slate-900 flex flex-col items-center justify-center">
         <FileText className="w-12 h-12 text-gray-300 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-1">{t("No documents found")}</h3>
-        <p className="text-gray-500 text-sm">{t("Upload your first document to securely store it here.")}</p>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100 mb-1">{t("No documents found")}</h3>
+        <p className="text-gray-500 dark:text-slate-400 text-sm">{t("Upload your first document to securely store it here.")}</p>
       </div>
     );
   }
@@ -98,10 +105,10 @@ export function DocumentTable({ data, loading, onView, isHR }: { data: any[], lo
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col">
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="bg-gray-50/50">
+          <TableHeader className="bg-gray-50 dark:bg-slate-800">
             <TableRow>
               <TableHead className="w-[250px] cursor-pointer hover:text-foreground transition-colors group select-none" onClick={() => handleSort('documentType')}>
                 {t("Document Name")} <SortIcon columnKey="documentType" />
@@ -128,7 +135,7 @@ export function DocumentTable({ data, loading, onView, isHR }: { data: any[], lo
           </TableHeader>
           <TableBody>
             {paginatedData.map((doc) => (
-              <TableRow key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+              <TableRow key={doc.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
@@ -143,12 +150,12 @@ export function DocumentTable({ data, loading, onView, isHR }: { data: any[], lo
                   </TableCell>
                 )}
                 <TableCell>
-                  <span className="text-sm text-gray-500 capitalize">{doc.category?.toLowerCase()}</span>
+                  <span className="text-sm text-gray-500 dark:text-slate-400 capitalize">{doc.category?.toLowerCase()}</span>
                 </TableCell>
-                <TableCell className="text-sm text-gray-500">
+                <TableCell className="text-sm text-gray-500 dark:text-slate-400">
                   {format(new Date(doc.createdAt), 'dd MMM yyyy')}
                 </TableCell>
-                <TableCell className="text-sm text-gray-500">
+                <TableCell className="text-sm text-gray-500 dark:text-slate-400">
                   {formatSize(doc.size)}
                 </TableCell>
                 <TableCell>{getStatusBadge(doc.verificationStatus)}</TableCell>
@@ -165,11 +172,11 @@ export function DocumentTable({ data, loading, onView, isHR }: { data: any[], lo
       </div>
 
       {/* Pagination Footer */}
-      <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
+      <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 dark:bg-slate-800">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Rows per page:</span>
           <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-            <SelectTrigger className="h-8 w-[70px] bg-white">
+            <SelectTrigger className="h-8 w-[70px] bg-white dark:bg-slate-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -189,7 +196,7 @@ export function DocumentTable({ data, loading, onView, isHR }: { data: any[], lo
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 bg-white"
+              className="h-8 w-8 bg-white dark:bg-slate-900"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
             >
@@ -198,7 +205,7 @@ export function DocumentTable({ data, loading, onView, isHR }: { data: any[], lo
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 bg-white"
+              className="h-8 w-8 bg-white dark:bg-slate-900"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages || totalPages === 0}
             >

@@ -22,8 +22,8 @@ export function EmployeeDashboard({ stats }: { stats: any }) {
   const { t } = useTranslation();
 
   const attendanceColumns = [
-    { header: "Date", accessor: (row: any) => format(new Date(row.date), 'MMM dd, yyyy') },
-    { header: "Status", accessor: (row: any) => (
+    { header: t("Date"), accessor: (row: any) => format(new Date(row.date), 'MMM dd, yyyy') },
+    { header: t("Status"), accessor: (row: any) => (
       <span className={`px-2 py-1 rounded text-xs font-semibold ${
         row.status === 'PRESENT' ? 'bg-green-100 text-green-700' :
         row.status === 'ABSENT' ? 'bg-red-100 text-red-700' :
@@ -32,19 +32,19 @@ export function EmployeeDashboard({ stats }: { stats: any }) {
         {row.status}
       </span>
     )},
-    { header: "Hours", accessor: (row: any) => `${row.effectiveHours || 0}h` },
-    { header: "Late", accessor: (row: any) => row.isLate ? 'Yes' : 'No' }
+    { header: t("Hours"), accessor: (row: any) => `${typeof row.effectiveHours === 'number' ? row.effectiveHours.toFixed(2) : (row.effectiveHours || 0)}h` },
+    { header: t("Late"), accessor: (row: any) => row.isLate ? 'Yes' : 'No' }
   ];
 
   const payslipColumns = [
-    { header: "Month", accessor: (row: any) => `${row.month}/${row.year}` },
-    { header: "Net Salary", accessor: (row: any) => `$${row.netSalary?.toLocaleString() || 0}` },
-    { header: "Status", accessor: (row: any) => row.status }
+    { header: t("Month"), accessor: (row: any) => `${row.month}/${row.year}` },
+    { header: t("Net Salary"), accessor: (row: any) => `$${row.netSalary?.toLocaleString() || 0}` },
+    { header: t("Status"), accessor: (row: any) => row.status }
   ];
 
   const documentColumns = [
-    { header: "Document", accessor: "documentType" },
-    { header: "Status", accessor: (row: any) => (
+    { header: t("Document"), accessor: "documentType" },
+    { header: t("Status"), accessor: (row: any) => (
       <span className={`px-2 py-1 rounded text-xs font-semibold ${
         row.verificationStatus === 'APPROVED' ? 'bg-green-100 text-green-700' :
         row.verificationStatus === 'REJECTED' ? 'bg-red-100 text-red-700' :
@@ -63,8 +63,9 @@ export function EmployeeDashboard({ stats }: { stats: any }) {
 
   return (
     <div className="flex flex-col gap-6">
+
       {/* 4-Column KPI Grid */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {stats?.metrics?.map((metric: any, i: number) => {
           let icon = CalendarCheck;
           let color = "text-blue-600";
@@ -98,20 +99,20 @@ export function EmployeeDashboard({ stats }: { stats: any }) {
 
           <div className="grid gap-6 md:grid-cols-2 h-[400px]">
             <DashboardDataTable 
-              title="Assigned Documents" 
+              title={t("Assigned Documents")} 
               data={stats?.assignedDocuments || []} 
               columns={documentColumns}
             />
             <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col">
-              <h3 className="text-lg font-semibold mb-4 text-primary">Working Hours Trend</h3>
+              <h3 className="text-lg font-semibold mb-4 text-primary">{t("Working Hours Trend")}</h3>
               <div className="h-full w-full min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stats?.barChartData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} />
                     <YAxis axisLine={false} tickLine={false} fontSize={12} />
-                    <Tooltip cursor={{fill: 'transparent'}} />
-                    <Bar dataKey="value" fill="#8884d8" radius={[4, 4, 0, 0]}>
+                    <Tooltip cursor={{fill: 'transparent'}} formatter={(value: any) => [`${value}h`, 'Hours']} />
+                    <Bar dataKey="value" name="Hours" fill="#8884d8" radius={[4, 4, 0, 0]}>
                       {stats?.barChartData?.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
@@ -122,7 +123,7 @@ export function EmployeeDashboard({ stats }: { stats: any }) {
             </div>
           </div>
             <DashboardDataTable 
-              title="Attendance History (Last 7 Days)" 
+              title={t("Attendance History (Last 7 Days)")} 
               data={stats?.attendanceHistory || []} 
               columns={attendanceColumns}
             />
@@ -133,7 +134,7 @@ export function EmployeeDashboard({ stats }: { stats: any }) {
           <UpcomingHolidays holidays={stats?.holidays || []} />
 
           <div className="rounded-xl border bg-card shadow-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("Recent Activities")}</h3>
             <ActivityTimeline activities={stats?.recentActivities || []} />
           </div>
         </div>

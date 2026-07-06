@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,14 @@ export function EditAttendanceModal({ isOpen, onClose, record }: EditAttendanceM
   const [punchIn, setPunchIn] = useState("");
   const [punchOut, setPunchOut] = useState("");
   const [status, setStatus] = useState("");
+  const [shiftId, setShiftId] = useState("");
+
+  const { data: shiftsRes } = useQuery({
+    queryKey: ['shiftsList'],
+    queryFn: async () => (await api.get('/shifts')).data
+  });
+
+  const shifts = shiftsRes?.data || shiftsRes || [];
 
   useEffect(() => {
     if (record && isOpen) {
@@ -29,6 +37,7 @@ export function EditAttendanceModal({ isOpen, onClose, record }: EditAttendanceM
       setPunchIn(inTime);
       setPunchOut(outTime);
       setStatus(record.status || "PRESENT");
+      setShiftId(record.shiftId || "");
     }
   }, [record, isOpen]);
 
@@ -60,7 +69,7 @@ export function EditAttendanceModal({ isOpen, onClose, record }: EditAttendanceM
       date: dateOnly,
       punchIn: checkInDateTime,
       punchOut: checkOutDateTime,
-      shiftId: record.shiftId || undefined,
+      shiftId: shiftId || undefined,
       status
     });
   };
@@ -82,6 +91,19 @@ export function EditAttendanceModal({ isOpen, onClose, record }: EditAttendanceM
               <Label>Check Out Time</Label>
               <Input type="time" value={punchOut} onChange={e => setPunchOut(e.target.value)} />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Shift</Label>
+            <Select value={shiftId} onValueChange={setShiftId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Shift" />
+              </SelectTrigger>
+              <SelectContent>
+                {shifts?.map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name} ({s.startTime} - {s.endTime})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Status</Label>

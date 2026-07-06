@@ -1,6 +1,8 @@
 import { prisma } from '../../lib/prisma';
+import { withCache } from '../../lib/redis';
 
 export const getSuperAdminStats = async () => {
+  return await withCache('dashboard:superadmin', 300, async () => {
   const totalUsers = await prisma.user.count();
   const totalHRs = await prisma.user.count({ where: { role: { name: { contains: 'HR', mode: 'insensitive' } } } });
   const totalRoles = await prisma.role.count();
@@ -106,9 +108,11 @@ export const getSuperAdminStats = async () => {
       { id: '2', title: 'New Role Created', description: 'HR Manager role updated', timestamp: new Date(Date.now() - 3600000), statusColor: 'bg-blue-500' }
     ]
   };
+  });
 };
 
-export const getHRManagerStats = async () => {
+export const getHRManagerStats = async (trend: string = '30d') => {
+  return await withCache(`dashboard:hrmanager:${trend}`, 300, async () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -158,12 +162,50 @@ export const getHRManagerStats = async () => {
     value: item._count._all
   }));
 
-  const barChartData = [
-    { name: 'Week 1', value: 40 },
-    { name: 'Week 2', value: 30 },
-    { name: 'Week 3', value: 20 },
-    { name: 'Week 4', value: 50 },
-  ];
+  const now = new Date();
+  const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+
+  // Only fetch candidates created in the relevant time window, selecting minimal fields
+  const candidates = await prisma.candidate.findMany({
+    where: { createdAt: { gte: trend === '1y' ? oneYearAgo : new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000) } },
+    select: { createdAt: true, interviewStatus: true, status: true }
+  });
+
+  
+  let barChartData: any[] = [];
+  
+  if (trend === '7d') {
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      d.setHours(0,0,0,0);
+      const nextD = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+      barChartData.push({
+        name: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        value: candidates.filter(c => c.createdAt >= d && c.createdAt < nextD).length
+      });
+    }
+  } else if (trend === '1y') {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextD = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      barChartData.push({
+        name: d.toLocaleDateString('en-US', { month: 'short' }),
+        value: candidates.filter(c => c.createdAt >= d && c.createdAt < nextD).length
+      });
+    }
+  } else {
+    // 30d
+    const week1 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const week2 = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const week3 = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000);
+    const week4 = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+    barChartData = [
+      { name: 'Week 4', value: candidates.filter(c => c.createdAt >= week4 && c.createdAt < week3).length },
+      { name: 'Week 3', value: candidates.filter(c => c.createdAt >= week3 && c.createdAt < week2).length },
+      { name: 'Week 2', value: candidates.filter(c => c.createdAt >= week2 && c.createdAt < week1).length },
+      { name: 'This Week', value: candidates.filter(c => c.createdAt >= week1).length },
+    ];
+  }
 
   const announcements = await prisma.announcement.findMany({
     where: { isActive: true, OR: [{ target: 'ALL' }, { target: 'HR_MANAGER' }] },
@@ -179,10 +221,10 @@ export const getHRManagerStats = async () => {
   ];
 
   const pipeline = [
-    { stage: 'Applied', count: 45 },
-    { stage: 'Screening', count: 12 },
-    { stage: 'Interview', count: 8 },
-    { stage: 'Offered', count: 2 }
+    { stage: 'Applied', count: candidates.filter(c => c.interviewStatus === 'PENDING').length },
+    { stage: 'Screening', count: candidates.filter(c => c.interviewStatus === 'DONE' && c.status === 'IN_PROGRESS').length },
+    { stage: 'Offered', count: candidates.filter(c => c.status === 'SELECTED').length },
+    { stage: 'Rejected', count: candidates.filter(c => c.status === 'NOT_SELECTED').length }
   ];
 
   const upcomingBirthdays = await prisma.employee.findMany({
@@ -195,12 +237,28 @@ export const getHRManagerStats = async () => {
     take: 5
   });
 
-  const deptAttendance = departments.map(d => ({
-    department: d.name,
-    present: Math.floor(Math.random() * 20), // Placeholder for complex grouping query
-    absent: Math.floor(Math.random() * 5),
-    onLeave: Math.floor(Math.random() * 2)
-  }));
+  // Optimized deptAttendanceRaw to only fetch required nested IDs and statuses
+  const deptAttendanceRaw = await prisma.employee.findMany({
+    select: {
+      departmentId: true,
+      attendanceRecords: { where: { date: today }, select: { status: true } },
+      leaveRequests: { where: { status: 'APPROVED', startDate: { lte: today }, endDate: { gte: today } }, select: { id: true } }
+    }
+  });
+
+  const deptAttendance = departments.map(d => {
+    const empsInDept = deptAttendanceRaw.filter(e => e.departmentId === d.id);
+    const present = empsInDept.filter(e => e.attendanceRecords.some(r => r.status === 'PRESENT')).length;
+    const onLeave = empsInDept.filter(e => e.leaveRequests.length > 0).length;
+    const absent = Math.max(0, empsInDept.length - present - onLeave);
+    
+    return {
+      department: d.name,
+      present,
+      absent,
+      onLeave
+    };
+  });
 
   return {
     metrics: [
@@ -225,9 +283,11 @@ export const getHRManagerStats = async () => {
       { id: '2', title: 'Payroll Generated', description: 'June 2026 Payroll', timestamp: new Date(Date.now() - 3600000), statusColor: 'bg-purple-500' }
     ]
   };
+  });
 };
 
 export const getEmployeeStats = async (userId: string) => {
+  return await withCache(`dashboard:employee:${userId}`, 120, async () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -289,13 +349,23 @@ export const getEmployeeStats = async (userId: string) => {
     { name: "Leaves Taken", value: 12 - leaveBalance }
   ];
 
-  const barChartData = [
-    { name: 'Mon', value: 8 },
-    { name: 'Tue', value: 8 },
-    { name: 'Wed', value: 8 },
-    { name: 'Thu', value: 9 },
-    { name: 'Fri', value: 7 },
-  ];
+  const chartRecords = [...(employee.attendanceRecords || [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  let barChartData = chartRecords.map((record: any) => {
+    const dayName = new Date(record.date).toLocaleDateString('en-US', { weekday: 'short' });
+    const value = typeof record.effectiveHours === 'number' ? Number(record.effectiveHours.toFixed(2)) : 0;
+    return { name: dayName, value };
+  });
+
+  if (barChartData.length === 0) {
+    barChartData = [
+      { name: 'Mon', value: 0 },
+      { name: 'Tue', value: 0 },
+      { name: 'Wed', value: 0 },
+      { name: 'Thu', value: 0 },
+      { name: 'Fri', value: 0 },
+    ];
+  }
 
   const announcements = await prisma.announcement.findMany({
     where: { isActive: true, OR: [{ target: 'ALL' }, { target: 'EMPLOYEE' }] },
@@ -335,7 +405,7 @@ export const getEmployeeStats = async (userId: string) => {
       { title: "Attendance %", value: `${attendancePercentage}%`, trend: "This Month" },
       { title: "Working Hours", value: "38h", trend: "This Week" },
       { title: "Leave Balance", value: leaveBalance, trend: "Annual Leaves" },
-      { title: "Upcoming Holidays", value: holidays.length, trend: "Next 30 Days" }
+      { title: "Holidays", value: holidays.length, trend: "This Year" }
     ],
     pieChartData,
     barChartData,
@@ -351,4 +421,5 @@ export const getEmployeeStats = async (userId: string) => {
       { id: '2', title: 'Leave Approved', description: 'Sick Leave for tomorrow', timestamp: new Date(Date.now() - 86400000), statusColor: 'bg-blue-500' }
     ]
   };
+  });
 };

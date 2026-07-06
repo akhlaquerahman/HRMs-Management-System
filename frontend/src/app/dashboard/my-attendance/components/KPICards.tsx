@@ -1,15 +1,14 @@
 "use client";
 
-import { Clock, UserCheck, UserX, AlertCircle, CalendarRange, Timer } from 'lucide-react';
+import { Clock, UserCheck, UserX, AlertCircle, CalendarRange, Timer, Loader2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export function KPICards({ summaryData, summaryLoading }: { summaryData: any, summaryLoading: boolean }) {
   if (summaryLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {[1, 2, 3, 4, 5, 6].map(i => (
-          <div key={i} className="h-[120px] bg-card rounded-xl border shadow-sm animate-pulse" />
-        ))}
+      <div className="w-full h-24 flex items-center justify-center gap-3">
+        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+        <p className="text-muted-foreground font-medium animate-pulse">Loading attendance metrics...</p>
       </div>
     );
   }
@@ -22,7 +21,7 @@ export function KPICards({ summaryData, summaryLoading }: { summaryData: any, su
       color: "text-green-600",
       bg: "bg-green-100",
       cardBg: "bg-green-50/50 dark:bg-green-950/20",
-      trend: "+2% vs last month"
+      trend: "Total all time"
     },
     {
       title: "Absent Days",
@@ -31,7 +30,7 @@ export function KPICards({ summaryData, summaryLoading }: { summaryData: any, su
       color: "text-red-600",
       bg: "bg-red-100",
       cardBg: "bg-red-50/50 dark:bg-red-950/20",
-      trend: "-1% vs last month"
+      trend: "Total all time"
     },
     {
       title: "Late Arrivals",
@@ -40,7 +39,7 @@ export function KPICards({ summaryData, summaryLoading }: { summaryData: any, su
       color: "text-yellow-600",
       bg: "bg-yellow-100",
       cardBg: "bg-yellow-50/50 dark:bg-yellow-950/20",
-      trend: "Same as last month"
+      trend: "Total all time"
     },
     {
       title: "Working Hours",
@@ -49,7 +48,7 @@ export function KPICards({ summaryData, summaryLoading }: { summaryData: any, su
       color: "text-blue-600",
       bg: "bg-blue-100",
       cardBg: "bg-blue-50/50 dark:bg-blue-950/20",
-      trend: "+5h vs last month"
+      trend: "Total all time"
     },
     {
       title: "Overtime",
@@ -58,7 +57,7 @@ export function KPICards({ summaryData, summaryLoading }: { summaryData: any, su
       color: "text-purple-600",
       bg: "bg-purple-100",
       cardBg: "bg-purple-50/50 dark:bg-purple-950/20",
-      trend: "-2h vs last month"
+      trend: "Total all time"
     },
     {
       title: "Remaining Leaves",

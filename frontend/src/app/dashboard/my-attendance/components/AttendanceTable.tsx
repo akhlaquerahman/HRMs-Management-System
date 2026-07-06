@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Clock, AlertCircle, FileEdit, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, AlertCircle, FileEdit, ArrowUp, ArrowDown, ArrowUpDown, Loader2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -93,17 +93,17 @@ export function AttendanceTable({ records, isLoading }: { records: any[], isLoad
     PRESENT: 'bg-green-100 text-green-700 hover:bg-green-100/80',
     ABSENT: 'bg-red-100 text-red-700 hover:bg-red-100/80',
     HALF_DAY: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100/80',
-    LEAVE: 'bg-gray-100 text-gray-700 hover:bg-gray-100/80',
+    LEAVE: 'bg-gray-100 dark:bg-slate-800 text-gray-700 hover:bg-gray-100 dark:hover:bg-slate-800 dark:bg-slate-800/80',
     'YET TO CHECK OUT': 'bg-blue-100 text-blue-700 hover:bg-blue-100/80',
   };
 
   if (isLoading) {
     return (
-      <div className="bg-card rounded-xl border shadow-sm p-4 animate-pulse">
-        <div className="h-10 bg-muted rounded-md w-full mb-4" />
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="h-14 border-t w-full" />
-        ))}
+      <div className="rounded-xl border bg-card shadow-sm p-12">
+        <div className="w-full h-[300px] flex flex-col items-center justify-center gap-4">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Loading attendance records...</p>
+        </div>
       </div>
     );
   }

@@ -37,7 +37,7 @@ export function AddAttendanceModal({ isOpen, onClose }: AddAttendanceModalProps)
     enabled: isOpen
   });
 
-  const employees = employeesRes?.data || employeesRes || [];
+  const employees = Array.isArray(employeesRes?.data) ? employeesRes.data : (employeesRes?.data?.data || employeesRes || []);
   const shifts = shiftsRes?.data || shiftsRes || [];
 
   const addMutation = useMutation({

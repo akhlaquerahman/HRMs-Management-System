@@ -65,6 +65,9 @@ model User {
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  isDeleted     Boolean  @default(false)
+  loginAttempts Int      @default(0)
+  lockedUntil   DateTime?
   companyName   String?
   companyWebsite String?
   companyAddress String?
@@ -91,7 +94,10 @@ model Department {
   updatedAt   DateTime @updatedAt
 
   designations Designation[]
-  employees    Employee[]
+  employees    Employee[] @relation("DepartmentEmployees")
+
+  managerId   String?
+  manager     Employee?  @relation(name: "DepartmentManager", fields: [managerId], references: [id])
 }
 
 model Designation {
@@ -125,7 +131,9 @@ model Employee {
   nationality    String?
   
   departmentId   String?
-  department     Department?  @relation(fields: [departmentId], references: [id])
+  department     Department?  @relation("DepartmentEmployees", fields: [departmentId], references: [id])
+  
+  managedDepartments Department[] @relation("DepartmentManager")
   
   designationId  String?
   designation    Designation? @relation(fields: [designationId], references: [id])
@@ -159,7 +167,7 @@ model Employee {
 
   skills         Json? // Array of { name, level, type }
   certifications Json? // Array of { name, issuer, issueDate, url }
-  baseSalary     Float?   @default(0.0) // Annual CTC or Monthly Base Salary
+  baseSalary     Decimal? @default(0.0) // Annual CTC or Monthly Base Salary
 
   shiftId        String?
   shift          Shift?     @relation(fields: [shiftId], references: [id])
@@ -168,6 +176,7 @@ model Employee {
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  isDeleted      Boolean  @default(false)
 
   leaveBalance   LeaveBalance?
 
@@ -182,6 +191,9 @@ model Employee {
   @@index([email])
   @@index([userId])
   @@index([departmentId])
+  @@index([status])
+  @@index([joiningDate])
+  @@index([isDeleted])
 }
 
 model Shift {
@@ -258,6 +270,7 @@ model LeaveRequest {
   approvalHistory ApprovalHistory[]
 
   @@index([employeeId, status])
+  @@index([startDate, endDate])
 }
 
 model LeaveBalance {
@@ -312,6 +325,7 @@ model Payroll {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  isDeleted       Boolean  @default(false)
   
   queries         PayrollQuery[]
   
@@ -357,6 +371,9 @@ model Candidate {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([status])
 }
 
 model DocumentType {

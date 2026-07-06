@@ -17,7 +17,8 @@ export const updateCorrectionStatusSchema = z.object({
 export const manualAttendanceSchema = z.object({
   employeeId: z.string(),
   date: z.string(),
-  punchIn: z.string(),
-  punchOut: z.string().optional().nullable(),
+  punchIn: z.string().optional().nullable().or(z.literal('')),
+  punchOut: z.string().optional().nullable().or(z.literal('')),
   status: z.string().optional().nullable(),
+  shiftId: z.string().optional().nullable().or(z.literal('')),
 });

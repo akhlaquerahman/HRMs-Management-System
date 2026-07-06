@@ -34,10 +34,10 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       {/* 
-        We use print:absolute print:inset-0 print:bg-white print:z-[9999] 
+        We use print:absolute print:inset-0 print:bg-white dark:bg-slate-900 print:z-[9999] 
         to ensure this modal covers everything else when printing 
       */}
-      <DialogContent className="max-w-3xl p-0 overflow-y-auto max-h-[90vh] bg-white print:border-none print:shadow-none print:m-0 print:p-0 print:max-h-none print:overflow-visible">
+      <DialogContent className="max-w-3xl p-0 overflow-y-auto max-h-[90vh] bg-white dark:bg-slate-900 print:border-none print:shadow-none print:m-0 print:p-0 print:max-h-none print:overflow-visible">
         <DialogTitle className="sr-only">Payslip Details</DialogTitle>
         
         {/* Modal Header (Hidden on Print) */}
@@ -46,25 +46,25 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
         </div>
 
         {/* Printable Area */}
-        <div className="p-8 bg-white" id="printable-payslip">
-          <div className="border border-gray-200 rounded-lg p-6 mb-4">
+        <div className="p-8 bg-white dark:bg-slate-900" id="printable-payslip">
+          <div className="border border-gray-200 dark:border-slate-700 rounded-lg p-6 mb-4">
             
             {/* Header Section */}
-            <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-200">
+            <div className="flex justify-between items-start mb-8 pb-6 border-b border-gray-200 dark:border-slate-700">
               <div>
                 <h1 className="text-3xl font-bold text-blue-600 mb-1">
                   {companyRes?.data?.companyName || "HRMs Pro"}
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-slate-400">
                   {companyRes?.data?.companyAddress || "456 Corporate Blvd, Business Hub"}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-slate-400">
                   {companyRes?.data?.companyWebsite || "admin@hrmspro.com"} | {companyRes?.data?.companyPhone || "+91 987 654 3210"}
                 </p>
               </div>
               <div className="text-right">
-                <h2 className="text-2xl font-bold text-gray-800 mb-1 uppercase">PAYSLIP</h2>
-                <p className="text-sm font-medium text-gray-800">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-slate-200 mb-1 uppercase">PAYSLIP</h2>
+                <p className="text-sm font-medium text-gray-800 dark:text-slate-200">
                   For the Month of: {record.month}/{record.year}
                 </p>
               </div>
@@ -74,77 +74,77 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
             <div className="grid grid-cols-2 gap-8 mb-8">
               {/* Employee Summary */}
               <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-3 border-b border-gray-200 pb-1">Employee Summary</h3>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-slate-200 mb-3 border-b border-gray-200 dark:border-slate-700 pb-1">Employee Summary</h3>
                 <div className="grid grid-cols-[120px_1fr] gap-y-2 text-sm">
-                  <span className="text-gray-500">Employee Name:</span>
-                  <span className="font-semibold text-gray-800">{record.employee?.firstName} {record.employee?.lastName}</span>
+                  <span className="text-gray-500 dark:text-slate-400">Employee Name:</span>
+                  <span className="font-semibold text-gray-800 dark:text-slate-200">{record.employee?.firstName} {record.employee?.lastName}</span>
                   
-                  <span className="text-gray-500">Employee ID:</span>
-                  <span className="text-gray-800">#{record.employee?.id?.slice(0, 6).toUpperCase()}</span>
+                  <span className="text-gray-500 dark:text-slate-400">Employee ID:</span>
+                  <span className="text-gray-800 dark:text-slate-200">#{record.employee?.id?.slice(0, 6).toUpperCase()}</span>
                   
-                  <span className="text-gray-500">Email:</span>
-                  <span className="text-gray-800">{record.employee?.user?.email || record.employee?.email || 'N/A'}</span>
+                  <span className="text-gray-500 dark:text-slate-400">Email:</span>
+                  <span className="text-gray-800 dark:text-slate-200">{record.employee?.user?.email || record.employee?.email || 'N/A'}</span>
                   
-                  <span className="text-gray-500">Bank Name:</span>
-                  <span className="text-gray-800">{record.employee?.bankName || 'N/A'}</span>
+                  <span className="text-gray-500 dark:text-slate-400">Bank Name:</span>
+                  <span className="text-gray-800 dark:text-slate-200">{record.employee?.bankName || 'N/A'}</span>
                   
-                  <span className="text-gray-500">Account No:</span>
-                  <span className="text-gray-800 font-mono">{record.employee?.accountNumber || 'N/A'}</span>
+                  <span className="text-gray-500 dark:text-slate-400">Account No:</span>
+                  <span className="text-gray-800 dark:text-slate-200 font-mono">{record.employee?.accountNumber || 'N/A'}</span>
                 </div>
               </div>
 
               {/* Payment Details */}
               <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-3 border-b border-gray-200 pb-1">Payment Details</h3>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-slate-200 mb-3 border-b border-gray-200 dark:border-slate-700 pb-1">Payment Details</h3>
                 <div className="grid grid-cols-2 gap-y-4 gap-x-4 text-sm">
                   <div>
-                    <p className="text-gray-500 mb-0.5">Payment Date</p>
-                    <p className="font-semibold text-gray-800">{format(new Date(record.paymentDate), 'M/d/yyyy h:mm a')}</p>
+                    <p className="text-gray-500 dark:text-slate-400 mb-0.5">Payment Date</p>
+                    <p className="font-semibold text-gray-800 dark:text-slate-200">{format(new Date(record.paymentDate), 'M/d/yyyy h:mm a')}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500 mb-0.5">Status</p>
+                    <p className="text-gray-500 dark:text-slate-400 mb-0.5">Status</p>
                     <p className="font-semibold text-green-600 uppercase">{record.status}</p>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-gray-500 mb-0.5">Transaction ID</p>
-                    <p className="font-semibold text-gray-800">{record.transactionId || 'Pending'}</p>
+                    <p className="text-gray-500 dark:text-slate-400 mb-0.5">Transaction ID</p>
+                    <p className="font-semibold text-gray-800 dark:text-slate-200">{record.transactionId || 'Pending'}</p>
                   </div>
                   <div className="col-span-2">
-                     <p className="text-gray-500 mb-0.5">Payment Mode</p>
-                     <p className="font-semibold text-gray-800">{record.paymentMethod?.replace('_', ' ')}</p>
+                     <p className="text-gray-500 dark:text-slate-400 mb-0.5">Payment Mode</p>
+                     <p className="font-semibold text-gray-800 dark:text-slate-200">{record.paymentMethod?.replace('_', ' ')}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Salary Breakdown Table */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+            <div className="border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden mb-6">
               <div className="grid grid-cols-2 divide-x divide-gray-200">
                 {/* Earnings Column */}
                 <div>
-                  <div className="flex justify-between items-center bg-gray-50 p-3 border-b border-gray-200 font-semibold text-sm text-gray-700">
+                  <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-800 p-3 border-b border-gray-200 dark:border-slate-700 font-semibold text-sm text-gray-700">
                     <span>Earnings</span>
                     <span>Amount</span>
                   </div>
                   <div className="p-3 space-y-3 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700">Basic Salary</span>
-                      <span className="text-gray-900">₹{record.basicSalary?.toFixed(2)}</span>
+                      <span className="text-gray-900 dark:text-slate-100">₹{record.basicSalary?.toFixed(2)}</span>
                     </div>
                     {(record.hra > 0) && (
                       <div className="flex justify-between items-center">
                         <span className="text-gray-700">HRA</span>
-                        <span className="text-gray-900">₹{record.hra?.toFixed(2)}</span>
+                        <span className="text-gray-900 dark:text-slate-100">₹{record.hra?.toFixed(2)}</span>
                       </div>
                     )}
                     {(record.bonus > 0 || record.incentives > 0) && (
                       <div className="flex justify-between items-center">
                         <span className="text-gray-700">Bonus / Allowance</span>
-                        <span className="text-gray-900">₹{((record.bonus || 0) + (record.incentives || 0) + (record.specialAllowance || 0)).toFixed(2)}</span>
+                        <span className="text-gray-900 dark:text-slate-100">₹{((record.bonus || 0) + (record.incentives || 0) + (record.specialAllowance || 0)).toFixed(2)}</span>
                       </div>
                     )}
                   </div>
-                  <div className="flex justify-between items-center p-3 border-t border-gray-200 font-bold text-sm bg-gray-50 mt-4">
+                  <div className="flex justify-between items-center p-3 border-t border-gray-200 dark:border-slate-700 font-bold text-sm bg-gray-50 dark:bg-slate-800 mt-4">
                     <span>Total Earnings</span>
                     <span>₹{totalEarnings.toFixed(2)}</span>
                   </div>
@@ -152,7 +152,7 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
 
                 {/* Deductions Column */}
                 <div>
-                  <div className="flex justify-between items-center bg-gray-50 p-3 border-b border-gray-200 font-semibold text-sm text-gray-700">
+                  <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-800 p-3 border-b border-gray-200 dark:border-slate-700 font-semibold text-sm text-gray-700">
                     <span>Deductions</span>
                     <span>Amount</span>
                   </div>
@@ -163,7 +163,7 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
                     </div>
                   </div>
                   {/* Push total to bottom to align with earnings total */}
-                  <div className="flex justify-between items-center p-3 border-t border-gray-200 font-bold text-sm bg-gray-50 mt-[52px]">
+                  <div className="flex justify-between items-center p-3 border-t border-gray-200 dark:border-slate-700 font-bold text-sm bg-gray-50 dark:bg-slate-800 mt-[52px]">
                     <span>Total Deductions</span>
                     <span className="text-red-500">-₹{record.deductions?.toFixed(2)}</span>
                   </div>
@@ -178,8 +178,8 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
             </div>
 
             {/* Footer Notice */}
-            <div className="text-center border-t border-gray-200 pt-6">
-              <p className="text-xs text-gray-500">
+            <div className="text-center border-t border-gray-200 dark:border-slate-700 pt-6">
+              <p className="text-xs text-gray-500 dark:text-slate-400">
                 This is a computer-generated document. No signature is required.
               </p>
             </div>
@@ -188,7 +188,7 @@ export function PayslipDrawer({ isOpen, onClose, record }: PayslipDrawerProps) {
         </div>
 
         {/* Action Buttons (Hidden on Print) */}
-        <div className="flex justify-end gap-3 p-4 bg-gray-50 border-t print:hidden">
+        <div className="flex justify-end gap-3 p-4 bg-gray-50 dark:bg-slate-800 border-t print:hidden">
           <Button variant="outline" onClick={onClose} className="px-6 border-blue-600 text-gray-700 font-medium">
             Close
           </Button>

@@ -11,17 +11,17 @@ import { Loader2 } from "lucide-react";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { nameValidation, emailValidation, passwordValidation, empIdValidation } from '@/lib/validations/common.schema';
+import { nameValidation, employeeNameValidation, emailValidation, passwordValidation, empIdValidation, dateValidation } from '@/lib/validations/common.schema';
 
 const employeeSchema = z.object({
-  firstName: nameValidation,
-  lastName: nameValidation,
+  firstName: employeeNameValidation,
+  lastName: employeeNameValidation,
   email: emailValidation,
   password: passwordValidation,
   employeeId: empIdValidation,
   departmentId: z.string().optional(),
   designationId: z.string().optional(),
-  joiningDate: z.string().min(1, "Joining date is required"),
+  joiningDate: dateValidation,
   employmentType: z.enum(['FULL_TIME', 'PART_TIME', 'CONTRACT']),
   baseSalary: z.string().optional(),
 });
@@ -32,8 +32,9 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<EmployeeFormData>({
+  const { register, handleSubmit, formState: { errors, isValid }, reset } = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
+    mode: "onTouched",
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -114,37 +115,19 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
         <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">{t("First Name")} *</Label>
+              <Label htmlFor="firstName" className={errors.firstName ? "text-destructive" : ""}>{t("First Name")} <span className="text-destructive">*</span></Label>
               <Input 
                 id="firstName" 
-                {...(() => {
-                  const { onChange, ...rest } = register("firstName");
-                  return {
-                    ...rest,
-                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                      e.target.value = e.target.value.replace(/[^a-zA-Z\s\'-]/g, '');
-                      onChange(e);
-                    }
-                  }
-                })()}
+                {...register("firstName")}
                 placeholder="John" 
               />
               {errors.firstName && <p className="text-[10px] text-destructive">{errors.firstName.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">{t("Last Name")} *</Label>
+              <Label htmlFor="lastName" className={errors.lastName ? "text-destructive" : ""}>{t("Last Name")} <span className="text-destructive">*</span></Label>
               <Input 
                 id="lastName" 
-                {...(() => {
-                  const { onChange, ...rest } = register("lastName");
-                  return {
-                    ...rest,
-                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                      e.target.value = e.target.value.replace(/[^a-zA-Z\s\'-]/g, '');
-                      onChange(e);
-                    }
-                  }
-                })()}
+                {...register("lastName")}
                 placeholder="Doe" 
               />
               {errors.lastName && <p className="text-[10px] text-destructive">{errors.lastName.message}</p>}
@@ -153,7 +136,7 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email">{t("Email Address")} *</Label>
+              <Label htmlFor="email" className={errors.email ? "text-destructive" : ""}>{t("Email Address")} <span className="text-destructive">*</span></Label>
               <Input 
                 id="email" 
                 type="email" 
@@ -163,7 +146,7 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
               {errors.email && <p className="text-[10px] text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">{t("Temporary Password")} *</Label>
+              <Label htmlFor="password" className={errors.password ? "text-destructive" : ""}>{t("Temporary Password")} <span className="text-destructive">*</span></Label>
               <Input 
                 id="password" 
                 type="password" 
@@ -176,7 +159,7 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
           
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="employeeId">{t("Employee ID")} *</Label>
+              <Label htmlFor="employeeId" className={errors.employeeId ? "text-destructive" : ""}>{t("Employee ID")} <span className="text-destructive">*</span></Label>
               <Input 
                 id="employeeId" 
                 {...register("employeeId")}
@@ -185,10 +168,12 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
               {errors.employeeId && <p className="text-[10px] text-destructive">{errors.employeeId.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="joiningDate">{t("Joining Date")} *</Label>
+              <Label htmlFor="joiningDate" className={errors.joiningDate ? "text-destructive" : ""}>{t("Joining Date")} <span className="text-destructive">*</span></Label>
               <Input 
                 id="joiningDate" 
                 type="date" 
+                min="1950-01-01"
+                max={new Date(new Date().setFullYear(new Date().getFullYear() + 5)).toISOString().split('T')[0]}
                 {...register("joiningDate")}
               />
               {errors.joiningDate && <p className="text-[10px] text-destructive">{errors.joiningDate.message}</p>}
@@ -237,7 +222,7 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="employmentType">{t("Employment Type")} *</Label>
+              <Label htmlFor="employmentType" className={errors.employmentType ? "text-destructive" : ""}>{t("Employment Type")} <span className="text-destructive">*</span></Label>
               <select 
                 id="employmentType" 
                 {...register("employmentType")}
@@ -252,7 +237,7 @@ export function AddEmployeeModal({ isOpen, onClose }: { isOpen: boolean, onClose
 
           <DialogFooter className="mt-6 border-t pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={createEmployee.isPending}>{t("Cancel")}</Button>
-            <Button type="submit" disabled={createEmployee.isPending}>
+            <Button type="submit" disabled={createEmployee.isPending || !isValid}>
               {createEmployee.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("Saving...")}

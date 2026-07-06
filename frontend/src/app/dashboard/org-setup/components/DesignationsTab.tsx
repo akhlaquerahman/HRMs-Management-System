@@ -45,9 +45,9 @@ export function DesignationsTab() {
   const designations = res?.data || [];
 
   return (
-    <div className="bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col">
-      <div className="p-4 border-b flex justify-between items-center bg-gray-50/30">
-        <h3 className="font-semibold text-gray-900">Designations Directory</h3>
+    <div className="bg-white dark:bg-slate-900 border rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div className="p-4 border-b flex justify-between items-center bg-gray-50 dark:bg-slate-800/30">
+        <h3 className="font-semibold text-gray-900 dark:text-slate-100">Designations Directory</h3>
         <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 shadow-sm" onClick={() => { setDesignationToEdit(null); setModalOpen(true); }}><Plus className="w-4 h-4 mr-2"/> Create Designation</Button>
         <Dialog open={modalOpen} onOpenChange={(open) => { setModalOpen(open); if(!open) setDesignationToEdit(null); }}>
           <DialogContent className="max-w-xl">
@@ -58,7 +58,7 @@ export function DesignationsTab() {
       </div>
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="bg-gray-50/80 border-b">
+          <TableHeader className="bg-gray-50 dark:bg-slate-800/80 border-b">
             <TableRow>
               <TableHead>Designation Title</TableHead>
               <TableHead>Job Level</TableHead>
@@ -76,12 +76,12 @@ export function DesignationsTab() {
               ))
             ) : designations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">No designations found.</TableCell>
+                <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-slate-400">No designations found.</TableCell>
               </TableRow>
             ) : (
               designations.map((desig: any) => (
                 <TableRow key={desig.id} className="hover:bg-indigo-50/30 transition-colors group">
-                  <TableCell className="font-semibold text-gray-900">{desig.name}</TableCell>
+                  <TableCell className="font-semibold text-gray-900 dark:text-slate-100">{desig.name}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
                       Level {desig.level}
@@ -96,7 +96,7 @@ export function DesignationsTab() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900 dark:text-slate-100">
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>

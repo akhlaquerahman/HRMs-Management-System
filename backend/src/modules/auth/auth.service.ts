@@ -153,7 +153,7 @@ export const verifyLoginOtp = async (email: string, otp: string) => {
 // Initiates the "Forgot Password" workflow by sending a secure reset link to the user
 export const requestPasswordReset = async (email: string) => {
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return true; // Fail silently for security
+  if (!user) throw new Error("Account not found");
 
   // Generate 6-digit OTP
   const otp = crypto.randomInt(100000, 999999).toString();

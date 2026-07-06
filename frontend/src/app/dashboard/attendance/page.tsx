@@ -11,9 +11,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AddAttendanceModal } from "./components/AddAttendanceModal";
 import { EditAttendanceModal } from "./components/EditAttendanceModal";
 import { BulkUploadModal } from "./components/BulkUploadModal";
@@ -24,7 +25,7 @@ import { AnalyticsTab } from "./components/AnalyticsTab";
 import { 
   UserCheck, UserX, Clock, AlarmClock, Plus, 
   CalendarDays, Download, ChevronRight, ChevronDown, MoreHorizontal, 
-  AlertCircle, FileText, CheckCircle2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, ArrowUpDown, UploadCloud
+  AlertCircle, FileText, CheckCircle2, TrendingUp, TrendingDown, ArrowUp, ArrowDown, ArrowUpDown, UploadCloud, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +45,39 @@ export default function AttendanceOperationsCenter() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [targetDate, setTargetDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [dateFilterType, setDateFilterType] = useState("today");
+
+  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
+  const selectedCount = Object.values(selectedRows).filter(Boolean).length;
+  
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedRows(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked && list) {
+      const all = list.reduce((acc: any, curr: any) => ({ ...acc, [curr.id]: true }), {});
+      setSelectedRows(all);
+    } else {
+      setSelectedRows({});
+    }
+  };
+
+  const handleBulkMarkAbsent = async () => {
+    const ids = Object.keys(selectedRows).filter(id => selectedRows[id]);
+    if (ids.length === 0) return;
+    if (window.confirm(`Are you sure you want to mark ${ids.length} selected records as Absent?`)) {
+      try {
+        await Promise.all(ids.map(id => api.put(`/attendance/${id}`, { status: "ABSENT" })));
+        toast.success(`Marked ${ids.length} records as Absent`);
+        setSelectedRows({});
+        queryClient.invalidateQueries({ queryKey: ["attendanceOpsList"] });
+        queryClient.invalidateQueries({ queryKey: ["attendanceOpsSummary"] });
+      } catch(e) {
+        toast.error("Failed to mark some records as absent");
+      }
+    }
+  };
 
   const { data: summaryRes, isLoading: loadingSummary } = useQuery({
     queryKey: ["attendanceOpsSummary"],
@@ -74,12 +108,12 @@ export default function AttendanceOperationsCenter() {
   const departments = departmentsData || [];
 
   const renderKPI = (title: string, value: string | number, icon: any, colorClass: string, cardBgClass: string) => (
-    <Card className={`shadow-sm border-gray-100 ${cardBgClass}`}>
+    <Card className={`shadow-sm border-gray-100 dark:border-slate-800 ${cardBgClass}`}>
       <CardContent className="p-4 flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="text-sm font-medium text-gray-500 dark:text-slate-400">{title}</p>
           <div className="flex items-baseline gap-2 mt-1">
-            <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{value}</h3>
           </div>
         </div>
         <div className={`p-3 rounded-xl ${colorClass}`}>
@@ -158,7 +192,7 @@ export default function AttendanceOperationsCenter() {
 
   const SortableHeader = ({ label, sortKeyParam }: { label: string, sortKeyParam: string }) => (
     <TableHead 
-      className="cursor-pointer hover:bg-gray-100 select-none group transition-colors" 
+      className="cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 dark:bg-slate-800 select-none group transition-colors" 
       onClick={() => handleSort(sortKeyParam)}
     >
       <div className="flex items-center gap-1">
@@ -175,11 +209,11 @@ export default function AttendanceOperationsCenter() {
   );
 
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Attendance Management</h2>
-          <p className="text-gray-500 mt-1">Monitor employee attendance, shifts, holidays, corrections, and workforce availability.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100">Attendance Management</h2>
+          <p className="text-gray-500 dark:text-slate-400 mt-1">Monitor employee attendance, shifts, holidays, corrections, and workforce availability.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsAddModalOpen(true)}>
@@ -189,8 +223,9 @@ export default function AttendanceOperationsCenter() {
       </div>
 
       {loadingSummary ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)}
+        <div className="w-full h-24 flex items-center justify-center gap-3">
+          <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Loading summary...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -214,15 +249,15 @@ export default function AttendanceOperationsCenter() {
             </TabsList>
 
             <TabsContent value="daily" className="mt-6 space-y-4">
-              <div className="flex flex-wrap gap-3 items-center justify-between bg-gray-50 p-3 rounded-xl border">
+              <div className="flex flex-wrap gap-3 items-center justify-between bg-gray-50 dark:bg-slate-800 p-3 rounded-xl border">
                 <div className="flex items-center gap-3 flex-1 min-w-[300px]">
                   <Input 
                     placeholder="Search employee, ID..." 
                     value={search} onChange={(e) => setSearch(e.target.value)} 
-                    className="w-full md:max-w-xs bg-white"
+                    className="w-full md:max-w-xs bg-white dark:bg-slate-900"
                   />
                   <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                    <SelectTrigger className="w-[140px] bg-white"><SelectValue placeholder="Department" /></SelectTrigger>
+                    <SelectTrigger className="w-[140px] bg-white dark:bg-slate-900"><SelectValue placeholder="Department" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Depts</SelectItem>
                       {departments.map((dept: any) => (
@@ -231,7 +266,7 @@ export default function AttendanceOperationsCenter() {
                     </SelectContent>
                   </Select>
                   <Select value={dateFilterType} onValueChange={setDateFilterType}>
-                    <SelectTrigger className="w-[140px] bg-white"><SelectValue placeholder="Date Filter" /></SelectTrigger>
+                    <SelectTrigger className="w-[140px] bg-white dark:bg-slate-900"><SelectValue placeholder="Date Filter" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="today">Today</SelectItem>
                       <SelectItem value="all">All Dates</SelectItem>
@@ -241,13 +276,14 @@ export default function AttendanceOperationsCenter() {
                   {dateFilterType === "custom" && (
                     <Input
                       type="date"
+                      max={new Date().toLocaleDateString('en-CA')}
                       value={targetDate}
                       onChange={(e) => setTargetDate(e.target.value)}
-                      className="w-[140px] bg-white text-sm"
+                      className="w-[140px] bg-white dark:bg-slate-900 text-sm"
                     />
                   )}
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[140px] bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+                    <SelectTrigger className="w-[140px] bg-white dark:bg-slate-900"><SelectValue placeholder="Status" /></SelectTrigger>
                     <SelectContent><SelectItem value="all">All Statuses</SelectItem><SelectItem value="PRESENT">Present</SelectItem><SelectItem value="ABSENT">Absent</SelectItem><SelectItem value="HALF_DAY">Half Day</SelectItem></SelectContent>
                   </Select>
                 </div>
@@ -262,10 +298,32 @@ export default function AttendanceOperationsCenter() {
                 </div>
               </div>
 
-              <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between mb-3 px-1 mt-2">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Showing <span className="text-blue-600 font-bold">{pagination.total}</span> Attendance Records
+                </h3>
+              </div>
+              {selectedCount > 0 && (
+                <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100 mb-4 animate-in fade-in slide-in-from-top-4">
+                  <span className="text-sm font-semibold text-blue-700">{selectedCount} record(s) selected</span>
+                  <div className="flex items-center gap-2">
+                    <Button variant="destructive" size="sm" className="h-8" onClick={handleBulkMarkAbsent}>
+                      <AlertCircle className="w-4 h-4 mr-1" /> Mark Absent
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-xl border bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
                 <Table>
-                  <TableHeader className="bg-gray-50/50">
+                  <TableHeader className="bg-gray-50 dark:bg-slate-800">
                     <TableRow>
+                      <TableHead className="w-[40px] pl-4">
+                        <Checkbox 
+                          checked={list.length > 0 && list.every((d: any) => selectedRows[d.id])}
+                          onCheckedChange={toggleSelectAll} 
+                        />
+                      </TableHead>
                       <TableHead className="w-[40px]"></TableHead>
                       <TableHead>Profile</TableHead>
                       <SortableHeader label="Emp ID" sortKeyParam="empId" />
@@ -280,26 +338,39 @@ export default function AttendanceOperationsCenter() {
                   </TableHeader>
                   <TableBody>
                     {loadingList ? (
-                      <TableRow><TableCell colSpan={9} className="h-32 text-center text-gray-500">Loading operations data...</TableCell></TableRow>
+                      <TableRow>
+                        <TableCell colSpan={9}>
+                          <div className="w-full h-[300px] flex flex-col items-center justify-center gap-4">
+                            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+                            <p className="text-muted-foreground font-medium animate-pulse">Loading operations data...</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     ) : list.length === 0 ? (
-                      <TableRow><TableCell colSpan={9} className="h-32 text-center text-gray-500">No records found matching criteria.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={9} className="h-32 text-center text-gray-500 dark:text-slate-400">No records found matching criteria.</TableCell></TableRow>
                     ) : (
                       list.map((record: any) => (
                         <React.Fragment key={record.id}>
-                          <TableRow className={`hover:bg-gray-50/50 cursor-pointer ${expandedRow === record.id ? 'bg-blue-50/30' : ''}`} onClick={() => setExpandedRow(expandedRow === record.id ? null : record.id)}>
-                            <TableCell>
+                          <TableRow className={`hover:bg-gray-50 dark:hover:bg-slate-800/50 cursor-pointer ${expandedRow === record.id ? 'bg-blue-50/30' : ''}`} onClick={() => setExpandedRow(expandedRow === record.id ? null : record.id)}>
+                            <TableCell className="pl-4 pr-2" onClick={(e) => toggleSelect(record.id, e)}>
+                              <Checkbox checked={!!selectedRows[record.id]} onCheckedChange={(c) => setSelectedRows(p => ({...p, [record.id]: !!c}))} />
+                            </TableCell>
+                            <TableCell className="pr-0 cursor-pointer">
                               {expandedRow === record.id ? <ChevronDown className="w-4 h-4 text-gray-400"/> : <ChevronRight className="w-4 h-4 text-gray-400"/>}
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-3">
-                                <Avatar className="h-9 w-9"><AvatarFallback>{record.employee.firstName[0]}{record.employee.lastName[0]}</AvatarFallback></Avatar>
+                                <Avatar className="h-9 w-9">
+                                  <AvatarImage src={record.employee.photo || record.employee.user?.profilePic} alt={record.employee.firstName} />
+                                  <AvatarFallback>{record.employee.firstName[0]}{record.employee.lastName[0]}</AvatarFallback>
+                                </Avatar>
                                 <div>
-                                  <p className="font-medium text-sm text-gray-900">{record.employee.firstName} {record.employee.lastName}</p>
-                                  <p className="text-xs text-gray-500">{record.employee.designation?.title || "Employee"}</p>
+                                  <p className="font-medium text-sm text-gray-900 dark:text-slate-100">{record.employee.firstName} {record.employee.lastName}</p>
+                                  <p className="text-xs text-gray-500 dark:text-slate-400">{record.employee.designation?.title || "Employee"}</p>
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="text-sm text-gray-500 font-medium">{record.employee.employeeId}</TableCell>
+                            <TableCell className="text-sm text-gray-500 dark:text-slate-400 font-medium">{record.employee.employeeId}</TableCell>
                             <TableCell className="text-sm">{formatDate(record.date)}</TableCell>
                             <TableCell className="text-sm">{record.logs[0]?.punchIn ? new Date(record.logs[0].punchIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--'}</TableCell>
                             <TableCell className="text-sm">{record.logs[record.logs.length-1]?.punchOut ? new Date(record.logs[record.logs.length-1].punchOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--:--'}</TableCell>
@@ -315,7 +386,7 @@ export default function AttendanceOperationsCenter() {
                                     displayStatus === 'YET TO CHECK OUT' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
                                     displayStatus === 'HALF_DAY' ? 'bg-orange-50 text-orange-700 border-orange-200' : 
                                     displayStatus === 'ABSENT' ? 'bg-red-50 text-red-700 border-red-200' :
-                                    'bg-gray-50 text-gray-700 border-gray-200'
+                                    'bg-gray-50 dark:bg-slate-800 text-gray-700 border-gray-200 dark:border-slate-700'
                                   }>
                                     {displayStatus.replace('_', ' ')}
                                   </Badge>
@@ -337,22 +408,22 @@ export default function AttendanceOperationsCenter() {
                           </TableRow>
                           
                           {expandedRow === record.id && (
-                            <TableRow className="bg-gray-50/30">
-                              <TableCell colSpan={9} className="p-0 border-b">
+                            <TableRow className="bg-gray-50 dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/50">
+                              <TableCell colSpan={11} className="p-0 border-b">
                                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                                   <div>
-                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Punch History</h4>
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-3">Punch History</h4>
                                     <div className="space-y-3">
                                       {record.logs.map((log: any, idx: number) => (
                                         <div key={idx} className="flex justify-between items-center text-sm border-l-2 border-blue-500 pl-3">
                                           <div>
-                                            <p className="text-gray-900 font-medium">In: {new Date(log.punchIn).toLocaleTimeString()}</p>
-                                            <p className="text-gray-500 text-xs">{log.ipAddress || 'Office Network'}</p>
+                                            <p className="text-gray-900 dark:text-slate-100 font-medium">In: {new Date(log.punchIn).toLocaleTimeString()}</p>
+                                            <p className="text-gray-500 dark:text-slate-400 text-xs">{log.ipAddress || 'Office Network'}</p>
                                           </div>
                                           {log.punchOut && (
                                             <div className="text-right">
-                                              <p className="text-gray-900 font-medium">Out: {new Date(log.punchOut).toLocaleTimeString()}</p>
-                                              <p className="text-gray-500 text-xs">Web Browser</p>
+                                              <p className="text-gray-900 dark:text-slate-100 font-medium">Out: {new Date(log.punchOut).toLocaleTimeString()}</p>
+                                              <p className="text-gray-500 dark:text-slate-400 text-xs">Web Browser</p>
                                             </div>
                                           )}
                                         </div>
@@ -360,26 +431,26 @@ export default function AttendanceOperationsCenter() {
                                     </div>
                                   </div>
                                   <div>
-                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Break Timeline</h4>
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-3">Break Timeline</h4>
                                     {record.breaks.length > 0 ? (
                                       <div className="space-y-2">
                                         {record.breaks.map((b: any, idx: number) => (
                                           <div key={idx} className="text-sm flex justify-between">
                                             <span className="text-gray-600">Break {idx + 1}</span>
-                                            <span className="font-medium text-gray-900">{b.durationMinutes} mins</span>
+                                            <span className="font-medium text-gray-900 dark:text-slate-100">{b.durationMinutes} mins</span>
                                           </div>
                                         ))}
                                       </div>
                                     ) : (
-                                      <p className="text-sm text-gray-500">No breaks taken.</p>
+                                      <p className="text-sm text-gray-500 dark:text-slate-400">No breaks taken.</p>
                                     )}
                                   </div>
                                   <div>
-                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Record Details</h4>
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-3">Record Details</h4>
                                     <div className="space-y-2 text-sm">
-                                      <div className="flex justify-between"><span className="text-gray-500">Effective Hrs:</span><span className="font-medium">{record.effectiveHours?.toFixed(2) || '0.00'}h</span></div>
-                                      <div className="flex justify-between"><span className="text-gray-500">Overtime:</span><span className="font-medium text-amber-600">0.00h</span></div>
-                                      <div className="flex justify-between"><span className="text-gray-500">Device:</span><span>{record.logs[0]?.deviceName || 'Unknown'}</span></div>
+                                      <div className="flex justify-between"><span className="text-gray-500 dark:text-slate-400">Effective Hrs:</span><span className="font-medium">{record.effectiveHours?.toFixed(2) || '0.00'}h</span></div>
+                                      <div className="flex justify-between"><span className="text-gray-500 dark:text-slate-400">Overtime:</span><span className="font-medium text-amber-600">0.00h</span></div>
+                                      <div className="flex justify-between"><span className="text-gray-500 dark:text-slate-400">Device:</span><span>{record.logs[0]?.deviceName || 'Unknown'}</span></div>
                                     </div>
                                   </div>
                                 </div>
@@ -392,11 +463,11 @@ export default function AttendanceOperationsCenter() {
                   </TableBody>
                 </Table>
                 
-                <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50/50">
-                  <div className="flex items-center text-sm text-gray-500">
+                <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 dark:bg-slate-800">
+                  <div className="flex items-center text-sm text-gray-500 dark:text-slate-400">
                     Rows per page
                     <Select value={limit} onValueChange={setLimit}>
-                      <SelectTrigger className="w-[70px] h-8 ml-2 bg-white"><SelectValue placeholder="10" /></SelectTrigger>
+                      <SelectTrigger className="w-[70px] h-8 ml-2 bg-white dark:bg-slate-900"><SelectValue placeholder="10" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="10">10</SelectItem>
                         <SelectItem value="20">20</SelectItem>
@@ -406,7 +477,7 @@ export default function AttendanceOperationsCenter() {
                     </Select>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
-                    <span className="text-gray-500">Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries</span>
+                    <span className="text-gray-500 dark:text-slate-400">Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries</span>
                     <div className="flex items-center gap-1">
                       <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
                       <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages || pagination.total === 0}>Next</Button>

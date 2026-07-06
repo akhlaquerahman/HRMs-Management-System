@@ -9,11 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Download, MoreHorizontal, ChevronDown, ChevronRight, Eye, Edit, Archive, Trash, Users, Plus } from "lucide-react";
+import { Search, Filter, Download, MoreHorizontal, ChevronDown, ChevronRight, Eye, Edit, Archive, Trash, Users, Plus, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DepartmentForm } from "./DepartmentForm";
 
 export function DepartmentsTab() {
@@ -30,6 +31,36 @@ export function DepartmentsTab() {
   });
 
   const departments = res?.data || [];
+
+  const filteredDepartments = React.useMemo(() => {
+    let result = departments;
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter((d: any) => d.name.toLowerCase().includes(s) || d.code.toLowerCase().includes(s));
+    }
+    if (statusFilter !== "all") {
+      const isActive = statusFilter === "active";
+      result = result.filter((d: any) => d.status === isActive);
+    }
+    return result;
+  }, [departments, search, statusFilter]);
+
+  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
+  const selectedCount = Object.values(selectedRows).filter(Boolean).length;
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedRows(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const all = filteredDepartments.reduce((acc: any, curr: any) => ({ ...acc, [curr.id]: true }), {});
+      setSelectedRows(all);
+    } else {
+      setSelectedRows({});
+    }
+  };
 
   const toggleRow = (id: string) => {
     if (expandedRow === id) setExpandedRow(null);
@@ -54,10 +85,23 @@ export function DepartmentsTab() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    const ids = Object.keys(selectedRows).filter(id => selectedRows[id]);
+    if (ids.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${ids.length} selected departments? This action cannot be undone.`)) {
+      try {
+        await Promise.all(ids.map(id => deleteMutation.mutateAsync(id)));
+        setSelectedRows({});
+      } catch(e) {
+        // toast error already handled by mutation
+      }
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Enterprise Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border shadow-sm">
         <div className="flex flex-wrap items-center gap-3 flex-1">
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -65,11 +109,11 @@ export function DepartmentsTab() {
               placeholder="Search departments..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-gray-50 border-gray-200 focus:bg-white"
+              className="pl-9 bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 focus:bg-white dark:bg-slate-900"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px] bg-gray-50"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="w-[160px] bg-gray-50 dark:bg-slate-800"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="active">Active</SelectItem>
@@ -85,9 +129,24 @@ export function DepartmentsTab() {
       </div>
 
       {/* Enterprise Table */}
-      <div className="bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b flex justify-between items-center bg-gray-50/30">
-          <h3 className="font-semibold text-gray-900">Departments Directory</h3>
+      <div className="flex items-center justify-between mb-3 px-1 mt-2">
+        <h3 className="text-sm font-semibold text-foreground">
+          Showing <span className="text-blue-600 font-bold">{filteredDepartments.length}</span> Departments
+        </h3>
+      </div>
+      {selectedCount > 0 && (
+        <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100 mb-4 animate-in fade-in slide-in-from-top-4">
+          <span className="text-sm font-semibold text-blue-700">{selectedCount} department(s) selected</span>
+          <div className="flex items-center gap-2">
+            <Button variant="destructive" size="sm" className="h-8" onClick={handleBulkDelete}>
+              <Trash className="w-4 h-4 mr-1" /> Delete
+            </Button>
+          </div>
+        </div>
+      )}
+      <div className="bg-white dark:bg-slate-900 border rounded-xl shadow-sm overflow-hidden flex flex-col">
+        <div className="p-4 border-b flex justify-between items-center bg-gray-50 dark:bg-slate-800/30">
+          <h3 className="font-semibold text-gray-900 dark:text-slate-100">Departments Directory</h3>
           <Button size="sm" className="bg-blue-600 hover:bg-blue-700 shadow-sm" onClick={() => { setDepartmentToEdit(null); setModalOpen(true); }}><Plus className="w-4 h-4 mr-2"/> Create Department</Button>
           <Dialog open={modalOpen} onOpenChange={(open) => { setModalOpen(open); if(!open) setDepartmentToEdit(null); }}>
             <DialogContent className="max-w-2xl">
@@ -98,8 +157,14 @@ export function DepartmentsTab() {
         </div>
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-gray-50/80 border-b">
+            <TableHeader className="bg-gray-50 dark:bg-slate-800/80 border-b">
               <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[40px] pl-4">
+                  <Checkbox 
+                    checked={filteredDepartments.length > 0 && filteredDepartments.every((d: any) => selectedRows[d.id])}
+                    onCheckedChange={toggleSelectAll} 
+                  />
+                </TableHead>
                 <TableHead className="w-[40px]"></TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Department Name</TableHead>
@@ -111,23 +176,29 @@ export function DepartmentsTab() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                [1,2,3,4,5].map(i => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={7}><Skeleton className="h-10 w-full" /></TableCell>
-                  </TableRow>
-                ))
-              ) : departments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">No departments found.</TableCell>
+                  <TableCell colSpan={7}>
+                    <div className="w-full h-[300px] flex flex-col items-center justify-center gap-4">
+                      <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+                      <p className="text-muted-foreground font-medium animate-pulse">Loading departments...</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredDepartments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500 dark:text-slate-400">No departments found.</TableCell>
                 </TableRow>
               ) : (
-                departments.map((dept: any) => (
+                filteredDepartments.map((dept: any) => (
                   <React.Fragment key={dept.id}>
                     <TableRow className="hover:bg-blue-50/30 transition-colors group cursor-pointer" onClick={() => toggleRow(dept.id)}>
-                      <TableCell className="pr-0">
+                      <TableCell className="pl-4 pr-2" onClick={(e) => toggleSelect(dept.id, e)}>
+                        <Checkbox checked={!!selectedRows[dept.id]} onCheckedChange={(c) => setSelectedRows(p => ({...p, [dept.id]: !!c}))} />
+                      </TableCell>
+                      <TableCell className="pr-0 cursor-pointer">
                         {expandedRow === dept.id ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500" />}
                       </TableCell>
-                      <TableCell className="font-medium text-gray-900">{dept.code}</TableCell>
+                      <TableCell className="font-medium text-gray-900 dark:text-slate-100">{dept.code}</TableCell>
                       <TableCell className="font-semibold text-blue-700">{dept.name}</TableCell>
                       <TableCell>
                         {dept.manager ? (
@@ -142,7 +213,7 @@ export function DepartmentsTab() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="bg-gray-100 hover:bg-gray-200 text-gray-700">
+                        <Badge variant="secondary" className="bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 text-gray-700">
                           <Users className="w-3 h-3 mr-1 inline"/> {dept._count?.employees || 0}
                         </Badge>
                       </TableCell>
@@ -154,7 +225,7 @@ export function DepartmentsTab() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900" onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900 dark:text-slate-100" onClick={(e) => e.stopPropagation()}>
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -169,10 +240,10 @@ export function DepartmentsTab() {
                     
                     {/* Expandable Row Content */}
                     {expandedRow === dept.id && (
-                      <TableRow className="bg-gray-50/50 hover:bg-gray-50/50">
-                        <TableCell colSpan={7} className="p-0 border-b">
-                          <div className="p-6 ml-10 border-l-2 border-blue-200 my-2 bg-white rounded-r-xl shadow-sm">
-                            <h4 className="font-semibold text-gray-900 mb-2">Department Details</h4>
+                      <TableRow className="bg-gray-50 dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/50">
+                        <TableCell colSpan={8} className="p-0 border-b">
+                          <div className="p-6 ml-10 border-l-2 border-blue-200 my-2 bg-white dark:bg-slate-900 rounded-r-xl shadow-sm">
+                            <h4 className="font-semibold text-gray-900 dark:text-slate-100 mb-2">Department Details</h4>
                             <p className="text-sm text-gray-600 mb-4">{dept.description || "No description provided for this department."}</p>
                             
                             <div className="grid grid-cols-3 gap-6">
@@ -201,8 +272,8 @@ export function DepartmentsTab() {
         </div>
         
         {/* Standard Pagination Footer */}
-        <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
-          <p className="text-sm text-gray-500">Showing 1 to {departments.length} of {departments.length} entries</p>
+        <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 dark:bg-slate-800">
+          <p className="text-sm text-gray-500 dark:text-slate-400">Showing 1 to {departments.length} of {departments.length} entries</p>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" disabled>Previous</Button>
             <Button variant="outline" size="sm" className="bg-blue-50 text-blue-600 border-blue-200">1</Button>

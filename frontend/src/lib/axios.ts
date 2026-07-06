@@ -2,8 +2,16 @@ import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 import NProgress from 'nprogress';
 
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:6002/api`;
+  }
+  return 'http://localhost:6002/api';
+};
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6002/api',
+  baseURL: getBaseUrl(),
   withCredentials: true,
 });
 

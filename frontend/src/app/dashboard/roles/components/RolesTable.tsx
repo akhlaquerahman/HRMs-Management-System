@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MoreVertical, Edit, Trash2, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, ChevronLeft, ChevronRight, ChevronDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -38,6 +38,17 @@ export function RolesTable({ data, loading, onEdit, onDelete }: RolesTableProps)
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
+  const selectedCount = Object.values(selectedRows).filter(Boolean).length;
+
+  const handleBulkDelete = () => {
+    const ids = Object.keys(selectedRows).filter(id => selectedRows[id]);
+    if (ids.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${ids.length} selected roles?`)) {
+      ids.forEach(id => onDelete(id));
+      setSelectedRows({});
+    }
+  };
+
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
@@ -58,27 +69,11 @@ export function RolesTable({ data, loading, onEdit, onDelete }: RolesTableProps)
 
   if (loading) {
     return (
-      <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50 border-b-border/50 hover:bg-muted/50">
-              <TableHead className="w-12 h-12"></TableHead>
-              <TableHead>Role Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <TableRow key={i} className="animate-pulse h-16 border-b-border/50">
-                <TableCell><div className="w-4 h-4 rounded bg-muted"></div></TableCell>
-                <TableCell><div className="h-4 w-32 bg-muted rounded"></div></TableCell>
-                <TableCell><div className="h-4 w-48 bg-muted rounded"></div></TableCell>
-                <TableCell><div className="h-6 w-16 bg-muted rounded-full"></div></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="rounded-xl border bg-card shadow-sm p-12">
+        <div className="w-full h-[300px] flex flex-col items-center justify-center gap-4">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Loading roles...</p>
+        </div>
       </div>
     );
   }
@@ -109,7 +104,22 @@ export function RolesTable({ data, loading, onEdit, onDelete }: RolesTableProps)
   };
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-sm font-semibold text-foreground">
+          Showing <span className="text-blue-600 font-bold">{data?.length || 0}</span> Roles
+        </h3>
+      </div>
+      {selectedCount > 0 && (
+        <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-top-4">
+          <span className="text-sm font-semibold text-blue-700">{selectedCount} role(s) selected</span>
+          <div className="flex items-center gap-2">
+            <Button variant="destructive" size="sm" className="h-8" onClick={handleBulkDelete}>
+              <Trash2 className="w-4 h-4 mr-1" /> Delete Selected
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="border rounded-xl bg-card shadow-sm flex flex-col overflow-hidden">
         <div className="overflow-x-auto flex-1">
           <Table>
@@ -156,7 +166,7 @@ export function RolesTable({ data, loading, onEdit, onDelete }: RolesTableProps)
                       </Button>
                     </TableCell>
                     <TableCell>
-                      <span className="font-bold text-gray-900">{role.name}</span>
+                      <span className="font-bold text-gray-900 dark:text-slate-100">{role.name}</span>
                     </TableCell>
                     <TableCell>
                       <span className="text-muted-foreground">{role.description || "No description provided."}</span>
@@ -257,6 +267,6 @@ export function RolesTable({ data, loading, onEdit, onDelete }: RolesTableProps)
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
@@ -12,16 +12,20 @@ import { UserPlus, UploadCloud, Download, FileBarChart, FileText, Plus } from 'l
 import { WorkforceKPICards } from './WorkforceKPICards';
 import { AdvancedFilterToolbar } from './AdvancedFilterToolbar';
 import { EmployeeTable } from './EmployeeTable';
-import { EmployeeProfileDrawer } from './EmployeeProfileDrawer';
-import { AddEmployeeModal } from './AddEmployeeModal';
-import { EditEmployeeModal } from "./EditEmployeeModal";
-import { BulkImportEmployeeModal } from "./BulkImportEmployeeModal";
+import dynamic from 'next/dynamic';
+
+const EmployeeProfileDrawer = dynamic(() => import('./EmployeeProfileDrawer').then(mod => mod.EmployeeProfileDrawer), { ssr: false });
+const AddEmployeeModal = dynamic(() => import('./AddEmployeeModal').then(mod => mod.AddEmployeeModal), { ssr: false });
+const EditEmployeeModal = dynamic(() => import('./EditEmployeeModal').then(mod => mod.EditEmployeeModal), { ssr: false });
+const BulkImportEmployeeModal = dynamic(() => import('./BulkImportEmployeeModal').then(mod => mod.BulkImportEmployeeModal), { ssr: false });
 
 export function WorkforceManagementClient() {
   const { t } = useTranslation();
   const user = useAuthStore(state => state.user);
 
   const [filters, setFilters] = useState({ search: '', department: 'ALL', designation: 'ALL', status: 'ALL', employmentType: 'ALL' });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -35,15 +39,22 @@ export function WorkforceManagementClient() {
   });
 
   const { data: employeesData, isLoading: isTableLoading } = useQuery({
-    queryKey: ['workforceEmployees', filters],
+    queryKey: ['workforceEmployees', filters, page, limit],
     queryFn: async () => {
-      const res = await api.get('/employees', { params: filters });
-      return res.data.data;
-    }
+      const res = await api.get('/employees', { params: { ...filters, page, limit } });
+      return res.data.data; // { data: [], total, page, totalPages }
+    },
+    placeholderData: keepPreviousData,
   });
 
-  const handleFilterChange = (key: string, val: string) => setFilters(p => ({ ...p, [key]: val }));
-  const handleResetFilters = () => setFilters({ search: '', department: 'ALL', designation: 'ALL', status: 'ALL', employmentType: 'ALL' });
+  const handleFilterChange = (key: string, val: string) => {
+    setFilters(p => ({ ...p, [key]: val }));
+    setPage(1); // Reset to page 1 on filter change
+  };
+  const handleResetFilters = () => {
+    setFilters({ search: '', department: 'ALL', designation: 'ALL', status: 'ALL', employmentType: 'ALL' });
+    setPage(1);
+  };
 
   const handleOpenProfile = (employeeId: string) => {
     setSelectedEmployeeId(employeeId);
@@ -59,7 +70,7 @@ export function WorkforceManagementClient() {
         showSearch={false}
         actionButton={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex gap-2 bg-white p-1 rounded-lg border">
+            <div className="flex gap-2 bg-white dark:bg-slate-900 p-1 rounded-lg border">
               <Button variant="outline" onClick={() => setIsBulkImportModalOpen(true)}><UploadCloud className="w-4 h-4 mr-2" />{t("Bulk Import")}</Button>
               <Button variant="outline"><Download className="w-4 h-4 mr-2" />{t("Export")}</Button>
             </div>
@@ -78,7 +89,7 @@ export function WorkforceManagementClient() {
       <div className="grid grid-cols-1 gap-6">
         <div className="lg:col-span-9 space-y-6">
           <EmployeeTable 
-            data={employeesData} 
+            data={employeesData?.data || []} 
             loading={isTableLoading} 
             onOpenProfile={handleOpenProfile} 
             onEditEmployee={(emp: any) => {
@@ -86,6 +97,32 @@ export function WorkforceManagementClient() {
               setIsEditModalOpen(true);
             }}
           />
+          {employeesData?.totalPages > 1 && (
+            <div className="flex justify-between items-center mt-4 p-4 border rounded-lg bg-white dark:bg-slate-900">
+              <span className="text-sm text-muted-foreground">Showing {employeesData.data?.length} of {employeesData.total} employees</span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Rows per page:</span>
+                  <select 
+                    className="border rounded p-1 text-sm bg-white dark:bg-slate-800 dark:border-slate-700 outline-none"
+                    value={limit}
+                    onChange={(e) => {
+                      setLimit(Number(e.target.value));
+                      setPage(1);
+                    }}
+                  >
+                    {[20, 50, 100, 200, 500].map(val => (
+                      <option key={val} value={val}>{val}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</Button>
+                  <Button variant="outline" disabled={page === employeesData.totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -15,6 +15,7 @@ interface PayrollFilterToolbarProps {
   showEmployeeFilter?: boolean;
   onCreateClick?: () => void;
   onBulkPayClick?: () => void;
+  filters?: any;
 }
 
 export function PayrollFilterToolbar({ 
@@ -24,7 +25,8 @@ export function PayrollFilterToolbar({
   onExportCSV,
   showEmployeeFilter = false,
   onCreateClick,
-  onBulkPayClick
+  onBulkPayClick,
+  filters
 }: PayrollFilterToolbarProps) {
   const { t } = useTranslation();
 
@@ -41,29 +43,23 @@ export function PayrollFilterToolbar({
           />
         </div>
 
-        <Select onValueChange={(val) => onFilterChange('year', val)} defaultValue="ALL">
-          <SelectTrigger className="w-[120px] h-10">
-            <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
-            <SelectValue placeholder={t("Year")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">{t("All Years")}</SelectItem>
-            <SelectItem value="2026">2026</SelectItem>
-            <SelectItem value="2025">2025</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select onValueChange={(val) => onFilterChange('month', val)} defaultValue="ALL">
-          <SelectTrigger className="w-[120px] h-10">
-            <SelectValue placeholder={t("Month")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">{t("All Months")}</SelectItem>
-            {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((monthName, index) => (
-              <SelectItem key={index + 1} value={(index + 1).toString()}>{t(monthName)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <input 
+          type="date" 
+          max={new Date().toLocaleDateString('en-CA')}
+          className="h-10 rounded-md border bg-card px-3 py-2 text-sm shadow-sm w-full md:w-[180px] focus:ring-2 focus:ring-primary focus:outline-none text-muted-foreground"
+          value={filters?.year !== 'ALL' && filters?.month !== 'ALL' ? `${filters?.year}-${String(filters?.month).padStart(2, '0')}-01` : ''}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val) {
+              const [y, m, d] = val.split('-');
+              onFilterChange('year', y);
+              onFilterChange('month', parseInt(m, 10).toString());
+            } else {
+              onFilterChange('year', 'ALL');
+              onFilterChange('month', 'ALL');
+            }
+          }}
+        />
 
         <Select onValueChange={(val) => onFilterChange('status', val)} defaultValue="ALL">
           <SelectTrigger className="w-[140px] h-10">

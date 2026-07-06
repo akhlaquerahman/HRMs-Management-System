@@ -31,6 +31,8 @@ import {
   User,
   FolderOpen,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
@@ -125,7 +127,7 @@ const menuConfig: MenuItem[] = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ className, onNavigate, isCollapsed, setIsCollapsed }: { className?: string, onNavigate?: () => void, isCollapsed?: boolean, setIsCollapsed?: (val: boolean) => void }) {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const pathname = usePathname();
@@ -180,7 +182,7 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="w-64 border-r bg-card flex flex-col h-full shrink-0">
+    <aside className={cn("border-r bg-slate-50 dark:bg-slate-900/50 flex flex-col h-full shrink-0 transition-all duration-300 relative", isCollapsed ? "w-20" : "w-64", className)}>
       <div className="h-16 flex items-center px-6 border-b shrink-0">
         <div className="flex items-center gap-2 font-bold text-xl tracking-tight text-primary">
           <Briefcase className="h-6 w-6" />
@@ -222,18 +224,21 @@ export default function Sidebar() {
                   if (!isCurrent) {
                     setPendingRoute(item.href);
                   }
+                  if (onNavigate) {
+                    onNavigate();
+                  }
                 }}
                 className={cn(
                   "flex items-center justify-between rounded-md px-3 py-2.5 text-base font-medium transition-all active:scale-[0.98]",
-                  isActive ? "bg-accent text-primary font-semibold shadow-sm" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-primary text-primary-foreground font-semibold shadow-md" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                   isOtherPending && "opacity-50 pointer-events-none"
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <item.icon className={cn("h-4 w-4", isPending && "text-primary/70")} />
+                  <item.icon className={cn("h-4 w-4", isPending && "text-primary-foreground/70")} />
                   {t(item.title)}
                 </div>
-                {isPending && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                {isPending && <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />}
               </Link>
             );
           })}

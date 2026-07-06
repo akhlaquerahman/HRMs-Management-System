@@ -2,6 +2,41 @@ import { prisma } from '../../lib/prisma';
 import { AttendanceLog, AttendanceRecord, LeaveBalance, LeaveRequest } from '@prisma/client';
 
 
+export const getLeaveQuotas = async () => {
+  const settings = await prisma.systemSetting.findMany({
+    where: { key: { in: ['LEAVE_QUOTA_ANNUAL', 'LEAVE_QUOTA_CASUAL', 'LEAVE_QUOTA_MEDICAL', 'LEAVE_QUOTA_EARNED'] } }
+  });
+
+  const getQuota = (key: string, defaultValue: number) => {
+    const setting = settings.find(s => s.key === key);
+    return setting ? parseInt(setting.value, 10) : defaultValue;
+  };
+
+  return {
+    annual: getQuota('LEAVE_QUOTA_ANNUAL', 18),
+    casual: getQuota('LEAVE_QUOTA_CASUAL', 8),
+    medical: getQuota('LEAVE_QUOTA_MEDICAL', 10),
+    earned: getQuota('LEAVE_QUOTA_EARNED', 5),
+  };
+};
+
+export const updateLeaveQuotas = async (quotas: { annual: number, casual: number, medical: number, earned: number }) => {
+  const updateQuota = async (key: string, value: number) => {
+    await prisma.systemSetting.upsert({
+      where: { key },
+      update: { value: value.toString() },
+      create: { key, value: value.toString(), group: 'Leave Settings' }
+    });
+  };
+
+  await updateQuota('LEAVE_QUOTA_ANNUAL', quotas.annual);
+  await updateQuota('LEAVE_QUOTA_CASUAL', quotas.casual);
+  await updateQuota('LEAVE_QUOTA_MEDICAL', quotas.medical);
+  await updateQuota('LEAVE_QUOTA_EARNED', quotas.earned);
+
+  return getLeaveQuotas();
+};
+
 export const getLeaveSummary = async (userId: string, role: string) => {
   if (role === 'EMPLOYEE') {
     const employee = await prisma.employee.findUnique({
@@ -13,7 +48,7 @@ export const getLeaveSummary = async (userId: string, role: string) => {
       metrics: [
         { title: "Available Leaves", value: 0, subtitle: "Total Balance", trend: "0 used", icon: "CalendarDays" },
         { title: "Pending Approvals", value: 0, subtitle: "Awaiting Action", trend: "0 new", icon: "Clock" },
-        { title: "Upcoming Leaves", value: 0, subtitle: "Next 30 days", trend: "0 days", icon: "CalendarCheck" },
+        { title: "Upcoming Leaves", value: 0, subtitle: "This Year", trend: "0 days", icon: "CalendarCheck" },
         { title: "Leaves Taken", value: 0, subtitle: "This Year", trend: "0% of quota", icon: "FileText" }
       ],
       insights: [
@@ -30,9 +65,11 @@ export const getLeaveSummary = async (userId: string, role: string) => {
     const rejected = requests.filter((r: any) => r.status === 'REJECTED').length;
     const upcoming = requests.filter((r: any) => r.status === 'APPROVED' && new Date(r.startDate) > new Date()).length;
 
+    const quotas = await getLeaveQuotas();
+
     // Default balance if not explicitly set
     const balance = employee.leaveBalance || {
-      annual: 18, casual: 8, medical: 10, earned: 5, compOff: 0
+      ...quotas, compOff: 0
     };
 
     const usedAnnual = requests.filter((r: any) => r.status === 'APPROVED' && r.leaveType === 'ANNUAL').length;
@@ -56,6 +93,8 @@ export const getLeaveSummary = async (userId: string, role: string) => {
     const approved = await prisma.leaveRequest.count({ where: { status: 'APPROVED' } });
     const rejected = await prisma.leaveRequest.count({ where: { status: 'REJECTED' } });
 
+    const quotas = await getLeaveQuotas();
+
     return {
       metrics: [
         { title: "Total Requests", value: totalRequests, subtitle: "All Time", trend: "Total", icon: "FileText" },
@@ -63,6 +102,7 @@ export const getLeaveSummary = async (userId: string, role: string) => {
         { title: "Approved Leaves", value: approved, subtitle: "All Time", trend: "Processed", icon: "CheckCircle" },
         { title: "Rejected Requests", value: rejected, subtitle: "All Time", trend: "Declined", icon: "XCircle" }
       ],
+      quotas: quotas,
       insights: [
         { id: '1', type: 'WARNING', message: `${pending} leave requests require your approval.` },
         { id: '2', type: 'INFO', message: `Leave utilization increased by 8% this month.` }
@@ -95,6 +135,7 @@ export const getLeaveRequests = async (userId: string, role: string, filters: an
       employee: {
         select: { 
           id: true, 
+          employeeId: true,
           firstName: true, 
           lastName: true, 
           department: {

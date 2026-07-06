@@ -13,12 +13,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function AssignManagerForm({ onSuccess, initialManagerId, initialDepartmentId }: { onSuccess: () => void, initialManagerId?: string, initialDepartmentId?: string }) {
   const queryClient = useQueryClient();
-  const { handleSubmit, setValue, watch } = useForm({
+  const { handleSubmit, setValue, watch, reset } = useForm({
     defaultValues: {
       employeeId: initialManagerId || "",
       departmentId: initialDepartmentId || ""
     }
   });
+  
+  React.useEffect(() => {
+    reset({
+      employeeId: initialManagerId || "",
+      departmentId: initialDepartmentId || ""
+    });
+  }, [initialManagerId, initialDepartmentId, reset]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedDept = watch("departmentId");
@@ -26,10 +34,10 @@ export function AssignManagerForm({ onSuccess, initialManagerId, initialDepartme
 
   // Fetch departments and active employees
   const { data: deptRes, isLoading: deptLoading } = useQuery({ queryKey: ["orgDepartments"], queryFn: async () => (await api.get("/org-setup/departments")).data });
-  const { data: empRes, isLoading: empLoading } = useQuery({ queryKey: ["activeEmployeesList"], queryFn: async () => (await api.get("/employees")).data });
+  const { data: empRes, isLoading: empLoading } = useQuery({ queryKey: ["activeEmployeesList", "all"], queryFn: async () => (await api.get("/employees?status=ACTIVE&limit=10000")).data });
   
   const departments = deptRes?.data || [];
-  const employees = empRes?.data || [];
+  const employees = Array.isArray(empRes?.data) ? empRes.data : (empRes?.data?.data || []);
 
   const onSubmit = async (data: any) => {
     if (!data.departmentId || !data.employeeId) {
@@ -45,6 +53,7 @@ export function AssignManagerForm({ onSuccess, initialManagerId, initialDepartme
       queryClient.invalidateQueries({ queryKey: ["activeEmployeesList"] });
       queryClient.invalidateQueries({ queryKey: ["orgDepartments"] });
       queryClient.invalidateQueries({ queryKey: ["orgSetupSummary"] });
+      queryClient.invalidateQueries({ queryKey: ["orgManagers"] });
       onSuccess();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to assign manager");
@@ -85,7 +94,7 @@ export function AssignManagerForm({ onSuccess, initialManagerId, initialDepartme
                 <SelectItem key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName} ({emp.employeeId})</SelectItem>
             ))}
             {employees.filter((emp: any) => emp.departmentId === selectedDept).length === 0 && (
-              <div className="p-2 text-sm text-gray-500 text-center">No employees found in this department</div>
+              <div className="p-2 text-sm text-gray-500 dark:text-slate-400 text-center">No employees found in this department</div>
             )}
           </SelectContent>
         </Select>

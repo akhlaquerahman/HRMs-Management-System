@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
-import { Building, Users, Briefcase, Plus, FileSpreadsheet, ListTree, UserCheck, MapPin, Search, Network } from "lucide-react";
+import { Building, Users, Briefcase, Plus, FileSpreadsheet, ListTree, UserCheck, MapPin, Search, Network, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -33,14 +33,14 @@ export default function OrganizationSetupPage() {
   ];
 
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6 bg-gray-50/30 min-h-screen">
+    <div className="flex-1 space-y-6">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-slate-100 flex items-center gap-2">
             Organization Setup
           </h2>
-          <p className="text-gray-500 mt-1 max-w-2xl">
+          <p className="text-gray-500 dark:text-slate-400 mt-1 max-w-2xl">
             Manage departments, designations, job roles, office locations, reporting hierarchy and organization structure.
           </p>
         </div>
@@ -49,8 +49,9 @@ export default function OrganizationSetupPage() {
 
       {/* KPI Section */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl w-full" />)}
+        <div className="w-full h-24 flex items-center justify-center gap-3">
+          <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Loading organization data...</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

@@ -116,6 +116,7 @@ export function PayrollManagementClient() {
       <div className="grid grid-cols-1 gap-6">
         <div className="xl:col-span-2 space-y-6">
           <PayrollFilterToolbar 
+            filters={filters}
             onSearch={(v) => handleFilterChange('search', v)}
             onFilterChange={handleFilterChange}
             onReset={handleReset}

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Users, Briefcase, CheckCircle, Clock } from 'lucide-react';
+import { Users, Briefcase, CheckCircle, Clock, Loader2 } from 'lucide-react';
 
 interface KPICardProps {
   title: string;
@@ -42,10 +42,9 @@ interface RecruitmentKPICardsProps {
 export function RecruitmentKPICards({ metrics, loading }: RecruitmentKPICardsProps) {
   if (loading) {
     return (
-      <div className="grid gap-6 grid-cols-2 md:grid-cols-4">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-32 bg-muted/40 rounded-xl animate-pulse" />
-        ))}
+      <div className="w-full h-24 flex items-center justify-center gap-3">
+        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+        <p className="text-muted-foreground font-medium animate-pulse">Loading recruitment metrics...</p>
       </div>
     );
   }

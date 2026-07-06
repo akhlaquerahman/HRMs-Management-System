@@ -25,6 +25,16 @@ export const nameValidation = z
   .refine((val) => !/\s{2,}/.test(val), { message: 'Name cannot contain consecutive spaces' });
 
 /**
+ * Employee Name Validation (No spaces allowed)
+ */
+export const employeeNameValidation = z
+  .string({ required_error: 'Name is required' })
+  .trim()
+  .min(2, 'Name must be at least 2 characters long')
+  .max(50, 'Name cannot exceed 50 characters')
+  .regex(/^[a-zA-Z\'-]+$/, 'Name can only contain alphabets, apostrophes, and hyphens (no spaces allowed)');
+
+/**
  * Common Email Validation
  * - RFC compliant, max length 254
  * - Trims and lowercases
@@ -143,3 +153,24 @@ export const searchValidation = z
   .max(100, 'Search query cannot exceed 100 characters')
   .regex(/^[^<>&]*$/, 'Search query contains invalid characters')
   .optional();
+
+/**
+ * Enterprise Date Validation
+ * - Enforces YYYY-MM-DD format
+ * - Ensures it's a valid calendar date
+ */
+export const dateValidation = z
+  .string({ required_error: 'Date is required' })
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+  .refine((val) => !isNaN(Date.parse(val)), 'Invalid calendar date')
+  .refine((val) => {
+    const date = new Date(val);
+    const minDate = new Date('1950-01-01');
+    return date >= minDate;
+  }, 'Date cannot be earlier than 1950')
+  .refine((val) => {
+    const date = new Date(val);
+    const maxDate = new Date();
+    maxDate.setFullYear(maxDate.getFullYear() + 5);
+    return date <= maxDate;
+  }, 'Date cannot be more than 5 years in the future');

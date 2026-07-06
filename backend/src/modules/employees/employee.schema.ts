@@ -1,17 +1,20 @@
 import { z } from 'zod';
-import { emailValidation, nameValidation, phoneValidation, empIdValidation } from '../../validations/common.schema';
+import { emailValidation, employeeNameValidation, phoneValidation, empIdValidation, dateValidation } from '../../validations/common.schema';
 
 export const createEmployeeSchema = z.object({
   employeeId: empIdValidation,
-  firstName: nameValidation,
-  lastName: nameValidation,
+  firstName: employeeNameValidation,
+  lastName: employeeNameValidation,
   email: emailValidation,
   phone: phoneValidation.optional(),
   gender: z.string().optional(),
   dob: z.string().optional(),
   departmentId: z.string().uuid('Invalid Department ID').optional(),
   designationId: z.string().uuid('Invalid Designation ID').optional(),
-  joiningDate: z.string(),
+  departmentName: z.string().optional(),
+  designationName: z.string().optional(),
+  baseSalary: z.union([z.string(), z.number()]).optional(),
+  joiningDate: dateValidation,
   employmentType: z.string().optional(),
   managerId: z.string().uuid('Invalid Manager ID').optional(),
   status: z.string().optional(),

@@ -20,7 +20,7 @@ export function HolidaysTab() {
   const holidays = holidaysRes?.data || [];
 
   if (isLoading) {
-    return <div className="p-8 text-center text-gray-500 animate-pulse">Loading holiday calendar...</div>;
+    return <div className="p-8 text-center text-gray-500 dark:text-slate-400 animate-pulse">Loading holiday calendar...</div>;
   }
 
   return (
@@ -31,9 +31,9 @@ export function HolidaysTab() {
         </Button>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <div className="rounded-xl border bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
         <Table>
-          <TableHeader className="bg-gray-50/50">
+          <TableHeader className="bg-gray-50 dark:bg-slate-800">
             <TableRow>
               <TableHead>Holiday Name</TableHead>
               <TableHead>Date</TableHead>
@@ -43,16 +43,16 @@ export function HolidaysTab() {
           </TableHeader>
           <TableBody>
             {holidays.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="h-32 text-center text-gray-500">No upcoming holidays configured.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="h-32 text-center text-gray-500 dark:text-slate-400">No upcoming holidays configured.</TableCell></TableRow>
             ) : (
               holidays.map((h: any) => (
                 <TableRow key={h.id}>
-                  <TableCell className="font-medium text-gray-900 flex items-center gap-2">
+                  <TableCell className="font-medium text-gray-900 dark:text-slate-100 flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-purple-400"/> {h.name}
                   </TableCell>
                   <TableCell>{formatDate(h.date)}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={h.type === 'NATIONAL' ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-50 text-gray-700'}>
+                    <Badge variant="outline" className={h.type === 'NATIONAL' ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-50 dark:bg-slate-800 text-gray-700'}>
                       {h.type || 'Standard'}
                     </Badge>
                   </TableCell>

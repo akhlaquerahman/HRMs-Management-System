@@ -179,7 +179,7 @@ export function PersonalDetailsForm({ formData, employeeData, setFormData, onSub
             <span className="text-[11px] text-muted-foreground font-semibold flex items-center gap-1.5 mb-0.5">
               <Hash className="w-3 h-3 text-primary/70" /> Emp ID
             </span>
-            <span className="text-sm font-semibold text-foreground">{employeeData?.id?.substring(0, 8).toUpperCase() || "N/A"}</span>
+            <span className="text-sm font-semibold text-foreground">{employeeData?.employeeId || "N/A"}</span>
           </div>
           
           <div className="space-y-1 bg-background/50 p-2.5 rounded-lg border border-muted/50">

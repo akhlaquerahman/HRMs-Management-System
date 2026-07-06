@@ -6,7 +6,9 @@ import {
   createLeaveRequest, 
   updateLeaveStatus, 
   getLeaveAnalytics, 
-  getLeaveCalendar 
+  getLeaveCalendar,
+  getLeaveQuotas,
+  updateLeaveQuotas
 } from './leave.controller';
 import { authenticate } from '../../middlewares/authMiddleware';
 import { validateRequest } from '../../middlewares/validateRequest';
@@ -19,6 +21,8 @@ router.use(authenticate);
 router.get('/summary', getLeaveSummary);
 router.get('/calendar', getLeaveCalendar);
 router.get('/analytics', getLeaveAnalytics);
+router.get('/quotas', getLeaveQuotas);
+router.put('/quotas', updateLeaveQuotas);
 
 router.get('/my', getMyLeaves);
 router.post('/my', validateRequest({ body: createLeaveRequestSchema }), createLeaveRequest);

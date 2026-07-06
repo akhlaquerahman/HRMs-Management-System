@@ -13,15 +13,15 @@ import { Briefcase, FileText } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { nameValidation, emailValidation } from "@/lib/validations/common.schema";
+import { nameValidation, emailValidation, employeeNameValidation } from "@/lib/validations/common.schema";
 
 import { RecruitmentKPICards } from './RecruitmentKPICards';
 import { RecruitmentFilterToolbar } from './RecruitmentFilterToolbar';
 import { RecruitmentTable } from './RecruitmentTable';
 
 const candidateSchema = z.object({
-  firstName: nameValidation,
-  lastName: nameValidation,
+  firstName: employeeNameValidation,
+  lastName: employeeNameValidation,
   email: emailValidation,
   jobRoleId: z.string().min(1, "Job Role is required"),
 });
@@ -40,8 +40,9 @@ export function RecruitmentManagementClient() {
 
   const [filters, setFilters] = useState({ search: "", jobRoleId: "ALL", status: "ALL" });
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<CandidateFormData>({
+  const { register, handleSubmit, formState: { errors, isValid }, reset, setValue, watch } = useForm<CandidateFormData>({
     resolver: zodResolver(candidateSchema),
+    mode: "onBlur",
     defaultValues: { firstName: "", lastName: "", email: "", jobRoleId: "" }
   });
 
@@ -178,9 +179,29 @@ export function RecruitmentManagementClient() {
 
       <RecruitmentKPICards metrics={kpiMetrics} loading={isLoadingCandidates} />
 
-      {isCreating ? (
-        <form onSubmit={handleSubmit(handleCreateSubmit)} className="border p-6 rounded-xl bg-card flex flex-col gap-4 shadow-sm mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h3 className="text-xl font-semibold text-primary mb-2">{t("Candidate Details")}</h3>
+      <div className="grid grid-cols-1 gap-6">
+        <RecruitmentFilterToolbar 
+          onSearch={(v) => handleFilterChange('search', v)}
+          onFilterChange={handleFilterChange}
+          onReset={handleResetFilters}
+          roles={roles}
+          onCreateClick={() => setIsCreating(true)}
+        />
+        <RecruitmentTable 
+          data={filteredCandidates}
+          loading={isLoadingCandidates}
+          onView={(c) => setViewCandidate(c)}
+          onEdit={(c) => setEditCandidate(c)}
+          onDelete={(id) => handleDelete(id)}
+        />
+      </div>
+
+      <Dialog open={isCreating} onOpenChange={(open) => !open && setIsCreating(false)}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("Candidate Details")}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(handleCreateSubmit)} className="flex flex-col gap-4 mt-2">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -272,29 +293,13 @@ export function RecruitmentManagementClient() {
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end mt-4 border-t pt-4">
+          <DialogFooter className="mt-4">
             <Button type="button" variant="outline" onClick={() => setIsCreating(false)}>{t("Cancel")}</Button>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? t("Submitting...") : t("Save Candidate")}</Button>
-          </div>
-        </form>
-      ) : (
-        <div className="grid grid-cols-1 gap-6">
-          <RecruitmentFilterToolbar 
-            onSearch={(v) => handleFilterChange('search', v)}
-            onFilterChange={handleFilterChange}
-            onReset={handleResetFilters}
-            roles={roles}
-            onCreateClick={() => setIsCreating(true)}
-          />
-          <RecruitmentTable 
-            data={filteredCandidates}
-            loading={isLoadingCandidates}
-            onView={(c) => setViewCandidate(c)}
-            onEdit={(c) => setEditCandidate(c)}
-            onDelete={(id) => handleDelete(id)}
-          />
-        </div>
-      )}
+            <Button type="submit" disabled={isSubmitting || !isValid}>{isSubmitting ? t("Submitting...") : t("Save Candidate")}</Button>
+          </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* View Modal */}
       <Dialog open={!!viewCandidate} onOpenChange={(open) => !open && setViewCandidate(null)}>

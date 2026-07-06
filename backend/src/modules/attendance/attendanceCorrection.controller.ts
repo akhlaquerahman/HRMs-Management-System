@@ -105,7 +105,7 @@ export const getPendingCorrections = async (req: Request, res: Response) => {
 
     const corrections = await prisma.attendanceCorrection.findMany({
       where: whereClause,
-      include: { employee: true },
+      include: { employee: { include: { user: { select: { profilePic: true } } } } },
       orderBy: { createdAt: 'desc' }
     });
 

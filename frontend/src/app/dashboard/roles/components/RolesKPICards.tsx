@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Shield, ShieldAlert, ShieldCheck, Key } from 'lucide-react';
+import { Shield, ShieldAlert, ShieldCheck, Key, Loader2 } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/KPICard';
 
 interface RolesKPICardsProps {
@@ -15,10 +15,9 @@ export function RolesKPICards({ roles, loading }: RolesKPICardsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="animate-pulse bg-muted/20 border-border/50 rounded-xl p-4 h-24" />
-        ))}
+      <div className="w-full h-24 flex items-center justify-center gap-3 mb-6">
+        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+        <p className="text-muted-foreground font-medium animate-pulse">Loading role metrics...</p>
       </div>
     );
   }

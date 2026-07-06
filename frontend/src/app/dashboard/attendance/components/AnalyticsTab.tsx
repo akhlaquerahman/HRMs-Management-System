@@ -15,7 +15,7 @@ export function AnalyticsTab() {
   const trendData = analyticsRes?.data?.trend || [];
 
   if (isLoading) {
-    return <div className="p-8 text-center text-gray-500 animate-pulse">Loading analytics...</div>;
+    return <div className="p-8 text-center text-gray-500 dark:text-slate-400 animate-pulse">Loading analytics...</div>;
   }
 
   return (

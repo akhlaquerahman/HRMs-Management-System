@@ -26,7 +26,7 @@ export function UpcomingHolidays({ holidays, loading }: UpcomingHolidaysProps) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Palmtree className="w-5 h-5 text-primary" />
-          {t('Upcoming Holidays')}
+          {t('Holidays')}
         </h3>
       </div>
 

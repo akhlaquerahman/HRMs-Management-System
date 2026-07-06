@@ -17,12 +17,11 @@ export function ReportingManagersTab() {
   const [editingManager, setEditingManager] = useState<any>(null);
   // Fetch active employees who are managers
   const { data: res, isLoading } = useQuery({
-    queryKey: ["orgManagers"],
-    queryFn: async () => (await api.get("/employees?status=ACTIVE&limit=100")).data // Using generic employees endpoint for now
+    queryKey: ["orgManagers", "all"],
+    queryFn: async () => (await api.get("/employees?status=ACTIVE&limit=10000")).data 
   });
 
-  // Filter out employees that have subordinates
-  const employees = res?.data || [];
+  const employees = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
   const managersMap = new Map();
   
   employees.forEach((emp: any) => {
@@ -40,9 +39,9 @@ export function ReportingManagersTab() {
   }));
 
   return (
-    <div className="bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col">
-      <div className="p-4 border-b flex justify-between items-center bg-gray-50/30">
-        <h3 className="font-semibold text-gray-900">Department Managers</h3>
+    <div className="bg-white dark:bg-slate-900 border rounded-xl shadow-sm overflow-hidden flex flex-col">
+      <div className="p-4 border-b flex justify-between items-center bg-gray-50 dark:bg-slate-800/30">
+        <h3 className="font-semibold text-gray-900 dark:text-slate-100">Department Managers</h3>
         <Button size="sm" onClick={() => { setEditingManager(null); setModalOpen(true); }} className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"><Plus className="w-4 h-4 mr-2"/> Assign Manager</Button>
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
           <DialogContent>
@@ -57,7 +56,7 @@ export function ReportingManagersTab() {
       </div>
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="bg-gray-50/80 border-b">
+          <TableHeader className="bg-gray-50 dark:bg-slate-800/80 border-b">
             <TableRow>
               <TableHead>Manager Name</TableHead>
               <TableHead>Department</TableHead>
@@ -75,12 +74,12 @@ export function ReportingManagersTab() {
               ))
             ) : managers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-500">No reporting managers found.</TableCell>
+                <TableCell colSpan={5} className="text-center py-8 text-gray-500 dark:text-slate-400">No reporting managers found.</TableCell>
               </TableRow>
             ) : (
               managers.map((mgr: any) => (
                 <TableRow key={mgr.id} className="hover:bg-amber-50/30 transition-colors">
-                  <TableCell className="font-semibold text-gray-900 flex items-center gap-3">
+                  <TableCell className="font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700">
                       {mgr.firstName[0]}{mgr.lastName[0]}
                     </div>
@@ -93,14 +92,14 @@ export function ReportingManagersTab() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center text-gray-900 font-medium">
+                    <div className="flex items-center text-gray-900 dark:text-slate-100 font-medium">
                       <Users className="w-4 h-4 mr-2 text-amber-600"/> {mgr.subordinates}
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900 dark:text-slate-100">
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>

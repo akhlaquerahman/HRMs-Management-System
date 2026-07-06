@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { FileText, MoreVertical, Eye, Download, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
+import { FileText, MoreVertical, Eye, Download, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ArrowUpDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -31,6 +32,30 @@ export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps)
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
+  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
+  const selectedCount = Object.values(selectedRows).filter(Boolean).length;
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedRows(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const all = data.reduce((acc: any, curr: any) => ({ ...acc, [curr.id]: true }), {});
+      setSelectedRows(all);
+    } else {
+      setSelectedRows({});
+    }
+  };
+
+  const handleBulkDownload = () => {
+    const ids = Object.keys(selectedRows).filter(id => selectedRows[id]);
+    if (ids.length === 0) return;
+    alert(`Downloading ${ids.length} payslips...`);
+    setSelectedRows({});
+  };
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -66,14 +91,10 @@ export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps)
 
   if (loading) {
     return (
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-        <div className="p-4 bg-muted/20 border-b">
-          <div className="h-6 bg-muted rounded w-1/4" />
-        </div>
-        <div className="p-4 space-y-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-12 bg-muted/40 rounded animate-pulse" />
-          ))}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden p-12">
+        <div className="w-full h-[300px] flex flex-col items-center justify-center gap-4">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Loading payroll records...</p>
         </div>
       </div>
     );
@@ -125,11 +146,33 @@ export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps)
   };
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col">
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-sm font-semibold text-foreground">
+          Showing <span className="text-blue-600 font-bold">{data?.length || 0}</span> Payroll Records
+        </h3>
+      </div>
+      {selectedCount > 0 && (
+        <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-top-4">
+          <span className="text-sm font-semibold text-blue-700">{selectedCount} record(s) selected</span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={handleBulkDownload}>
+              <Download className="w-4 h-4 mr-1" /> Download Selected
+            </Button>
+          </div>
+        </div>
+      )}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col">
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left whitespace-nowrap">
           <thead className="bg-muted/30 text-muted-foreground text-xs uppercase font-semibold sticky top-0">
             <tr>
+              <th className="px-4 py-3 w-10 pl-4">
+                <Checkbox 
+                  checked={data?.length > 0 && data.every((d: any) => selectedRows[d.id])}
+                  onCheckedChange={toggleSelectAll} 
+                />
+              </th>
               <th className="px-4 py-3">Payroll ID</th>
               <th className="px-4 py-3 cursor-pointer hover:text-foreground transition-colors group select-none" onClick={() => handleSort('period')}>
                 Period <SortIcon columnKey="period" />
@@ -155,6 +198,9 @@ export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps)
           <tbody className="divide-y">
             {paginatedData.map((record) => (
               <tr key={record.id} className="hover:bg-muted/20 transition-colors group">
+                <td className="px-4 py-3 pl-4" onClick={(e) => toggleSelect(record.id, e)}>
+                  <Checkbox checked={!!selectedRows[record.id]} onCheckedChange={(c) => setSelectedRows(p => ({...p, [record.id]: !!c}))} />
+                </td>
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                   #{record.id.slice(0,6).toUpperCase()}
                 </td>
@@ -254,6 +300,7 @@ export function PayrollTable({ data, loading, isHR, onView }: PayrollTableProps)
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

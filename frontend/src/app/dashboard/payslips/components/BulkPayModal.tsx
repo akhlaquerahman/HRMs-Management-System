@@ -28,8 +28,9 @@ export function BulkPayModal({ isOpen, onClose }: BulkPayModalProps) {
   });
 
   useEffect(() => {
-    if (isSuccess && employeesRes?.data) {
-      const initialized = employeesRes.data.map((emp: any) => ({
+    const rawEmployees = Array.isArray(employeesRes?.data) ? employeesRes.data : (employeesRes?.data?.data || []);
+    if (isSuccess && rawEmployees.length > 0) {
+      const initialized = rawEmployees.map((emp: any) => ({
         selected: false,
         employeeId: emp.id,
         name: `${emp.firstName} ${emp.lastName}`,

@@ -19,22 +19,22 @@ export function SuperAdminDashboard({ stats }: { stats: any }) {
   const { t } = useTranslation();
 
   const userColumns = [
-    { header: "Name", accessor: (row: any) => `${row.firstName} ${row.lastName}` },
-    { header: "Email", accessor: "email" },
-    { header: "Role", accessor: (row: any) => row.role?.name || 'N/A' },
-    { header: "Joined", accessor: (row: any) => format(new Date(row.createdAt), 'MMM dd, yyyy') },
+    { header: t("Name"), accessor: (row: any) => `${row.firstName} ${row.lastName}` },
+    { header: t("Email"), accessor: "email" },
+    { header: t("Role"), accessor: (row: any) => row.role?.name || 'N/A' },
+    { header: t("Joined"), accessor: (row: any) => format(new Date(row.createdAt), 'MMM dd, yyyy') },
   ];
 
   const logColumns = [
-    { header: "Action", accessor: "action" },
-    { header: "User", accessor: (row: any) => row.user ? `${row.user.firstName} ${row.user.lastName}` : 'System' },
-    { header: "Time", accessor: (row: any) => format(new Date(row.timestamp), 'MMM dd, HH:mm') },
+    { header: t("Action"), accessor: "action" },
+    { header: t("User"), accessor: (row: any) => row.user ? `${row.user.firstName} ${row.user.lastName}` : 'System' },
+    { header: t("Time"), accessor: (row: any) => format(new Date(row.timestamp), 'MMM dd, HH:mm') },
   ];
 
   return (
     <div className="flex flex-col gap-6">
       {/* 6-Column KPI Grid */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {stats?.metrics?.map((metric: any, i: number) => {
           let icon = Users;
           let color = "text-blue-600";
@@ -67,7 +67,7 @@ export function SuperAdminDashboard({ stats }: { stats: any }) {
 
           <div className="grid gap-6 md:grid-cols-2 h-[350px]">
             <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col">
-              <h3 className="text-lg font-semibold mb-4 text-primary">System Roles Distribution</h3>
+              <h3 className="text-lg font-semibold mb-4 text-primary">{t("System Roles Distribution")}</h3>
               <div className="flex-1 w-full min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart style={{ outline: 'none' }}>
@@ -91,7 +91,7 @@ export function SuperAdminDashboard({ stats }: { stats: any }) {
             </div>
 
             <div className="rounded-xl border bg-card shadow-sm p-6 flex flex-col">
-              <h3 className="text-lg font-semibold mb-4 text-primary">API Traffic Trend</h3>
+              <h3 className="text-lg font-semibold mb-4 text-primary">{t("API Traffic Trend")}</h3>
               <div className="flex-1 w-full min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={stats?.barChartData}>
@@ -108,12 +108,12 @@ export function SuperAdminDashboard({ stats }: { stats: any }) {
 
           <div className="grid gap-6 md:grid-cols-2 h-[400px]">
             <DashboardDataTable 
-              title="Recent Users" 
+              title={t("Recent Users")} 
               data={stats?.recentUsers || []} 
               columns={userColumns}
             />
             <DashboardDataTable 
-              title="Audit Logs (Recent)" 
+              title={t("Audit Logs (Recent)")} 
               data={stats?.recentLogs || []} 
               columns={logColumns}
             />

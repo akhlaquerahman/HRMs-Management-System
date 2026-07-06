@@ -11,7 +11,7 @@ export const getDashboardSummary = async (req: Request, res: Response) => {
     const distinctManagersData = await prisma.employee.findMany({ select: { managerId: true }, where: { status: 'ACTIVE', managerId: { not: null } } });
     const uniqueManagers = new Set(distinctManagersData.map(e => e.managerId));
     const managers = uniqueManagers.size;
-    const officeLocations = await prisma.officeLocation.count();
+    const officeLocations = 0; // Location tracking temporarily disabled or moved
     const openPositions = 12; // Static for now, can be computed from requisition system if available
 
     const avgEmployeesPerDept = totalDepartments > 0 ? (activeEmployees / totalDepartments).toFixed(1) : 0;
@@ -36,20 +36,14 @@ export const getDepartments = async (req: Request, res: Response) => {
   try {
     const departments = await prisma.department.findMany({
       include: {
-        location: true,
         _count: { select: { employees: true } },
+        manager: {
+          select: { id: true, firstName: true, lastName: true, employeeId: true }
+        }
       }
     });
 
-    // Manually fetch manager for each department (manager logic might be employee with manager role, or custom field)
-    const result = await Promise.all(departments.map(async (dept: any) => {
-      let manager = null;
-      if (dept.managerId) {
-        manager = await prisma.employee.findUnique({ where: { id: dept.managerId }, select: { firstName: true, lastName: true, employeeId: true } });
-      }
-      return { ...dept, manager };
-    }));
-    return res.status(200).json(new ApiResponse(true, 'Departments fetched', result));
+    return res.status(200).json(new ApiResponse(true, 'Departments fetched', departments));
   } catch (error: any) {
     return res.status(500).json(new ApiResponse(false, error.message));
   }
@@ -57,7 +51,7 @@ export const getDepartments = async (req: Request, res: Response) => {
 
 export const createDepartment = async (req: Request, res: Response) => {
   try {
-    const { name, code, description, managerId, locationId } = req.body;
+    const { name, code, description, managerId } = req.body;
     
     // Check if code or name already exists
     const existing = await prisma.department.findFirst({
@@ -68,7 +62,7 @@ export const createDepartment = async (req: Request, res: Response) => {
     }
 
     const dept = await prisma.department.create({
-      data: { name, code, description, managerId, locationId }
+      data: { name, code, description, managerId }
     });
 
     return res.status(201).json(new ApiResponse(true, 'Department created successfully', dept));
@@ -80,7 +74,7 @@ export const createDepartment = async (req: Request, res: Response) => {
 export const updateDepartment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, code, description, managerId, locationId, status } = req.body;
+    const { name, code, description, status, managerId } = req.body;
     
     const existing = await prisma.department.findFirst({
       where: { OR: [{ name }, { code }], NOT: { id } }
@@ -91,8 +85,23 @@ export const updateDepartment = async (req: Request, res: Response) => {
 
     const dept = await prisma.department.update({
       where: { id },
-      data: { name, code, description, managerId, locationId, status }
+      data: { name, code, description, status, managerId }
     });
+
+    if (managerId) {
+      await prisma.employee.updateMany({
+        where: { 
+          departmentId: id,
+          id: { not: managerId } // Don't make the manager report to themselves
+        },
+        data: { managerId: managerId }
+      });
+      const { default: redis } = await import('../../lib/redis');
+      if (redis.status === 'ready') {
+        const keys = await redis.keys('employees:*');
+        if (keys.length > 0) await redis.del(keys);
+      }
+    }
 
     return res.status(200).json(new ApiResponse(true, 'Department updated successfully', dept));
   } catch (error: any) {
@@ -217,14 +226,22 @@ export const getOrganizationChart = async (req: Request, res: Response) => {
       employeeMap.set(emp.id, { ...emp, children: [] });
     });
 
-    const rootNodes: any[] = [];
+    const rawRootNodes: any[] = [];
     employeeMap.forEach((emp: any) => {
       if (emp.managerId && employeeMap.has(emp.managerId)) {
         employeeMap.get(emp.managerId).children.push(emp);
       } else {
-        rootNodes.push(emp); // Nodes with no manager are root (like CEO)
+        rawRootNodes.push(emp); // Nodes with no manager are root (like CEO)
       }
     });
+
+    // Filter to only show root nodes that have subordinates, to avoid cluttering 
+    // the org chart with thousands of unassigned employees.
+    const rootNodes = rawRootNodes.filter(node => 
+      node.children.length > 0 || 
+      (node.designation?.name && node.designation.name.toLowerCase().includes('ceo')) ||
+      (node.designation?.name && node.designation.name.toLowerCase().includes('founder'))
+    );
 
     return res.status(200).json(new ApiResponse(true, 'Organization Chart fetched', rootNodes));
   } catch (error: any) {
@@ -240,7 +257,7 @@ export const assignDepartmentManager = async (req: Request, res: Response) => {
       return res.status(400).json(new ApiResponse(false, 'Department ID and Employee ID are required'));
     }
 
-    // 1. Set employee as manager of the department
+    // 1. Update the department's manager
     await prisma.department.update({
       where: { id: departmentId },
       data: { managerId: employeeId }
@@ -254,6 +271,12 @@ export const assignDepartmentManager = async (req: Request, res: Response) => {
       },
       data: { managerId: employeeId }
     });
+
+    const { default: redis } = await import('../../lib/redis');
+    if (redis.status === 'ready') {
+      const keys = await redis.keys('employees:*');
+      if (keys.length > 0) await redis.del(keys);
+    }
 
     return res.status(200).json(new ApiResponse(true, 'Manager assigned successfully'));
   } catch (error: any) {

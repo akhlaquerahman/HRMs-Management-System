@@ -21,7 +21,7 @@ export function ShiftsTab() {
   const shifts = shiftsRes?.data || [];
 
   if (isLoading) {
-    return <div className="p-8 text-center text-gray-500 animate-pulse">Loading shift configurations...</div>;
+    return <div className="p-8 text-center text-gray-500 dark:text-slate-400 animate-pulse">Loading shift configurations...</div>;
   }
 
   return (
@@ -32,9 +32,9 @@ export function ShiftsTab() {
         </Button>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+      <div className="rounded-xl border bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
         <Table>
-          <TableHeader className="bg-gray-50/50">
+          <TableHeader className="bg-gray-50 dark:bg-slate-800">
             <TableRow>
               <TableHead>Shift Name</TableHead>
               <TableHead>Start Time</TableHead>
@@ -46,11 +46,11 @@ export function ShiftsTab() {
           </TableHeader>
           <TableBody>
             {shifts.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="h-32 text-center text-gray-500">No shifts configured.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="h-32 text-center text-gray-500 dark:text-slate-400">No shifts configured.</TableCell></TableRow>
             ) : (
               shifts.map((s: any) => (
                 <TableRow key={s.id}>
-                  <TableCell className="font-medium text-gray-900 flex items-center gap-2">
+                  <TableCell className="font-medium text-gray-900 dark:text-slate-100 flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-400"/> {s.name}
                   </TableCell>
                   <TableCell>{s.startTime}</TableCell>

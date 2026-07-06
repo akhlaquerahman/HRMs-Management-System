@@ -10,14 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 import { LeaveKPICards } from './LeaveKPICards';
-import { LeaveBalanceCards } from './LeaveBalanceCards';
 import { LeaveFilterToolbar } from './LeaveFilterToolbar';
 import { LeaveTable } from './LeaveTable';
 import { RequestLeaveModal } from './RequestLeaveModal';
 import { LeaveCalendar } from './LeaveCalendar';
 import { AddHolidayModal } from './AddHolidayModal';
-import { AIInsightsCard } from '@/components/dashboard/AIInsightsCard';
 import { UpcomingHolidays } from '@/components/dashboard/UpcomingHolidays';
+import { ManageLeaveQuotasModal } from './ManageLeaveQuotasModal';
+import { Settings2 } from 'lucide-react';
 
 export function LeaveManagementClient() {
   const { t } = useTranslation();
@@ -27,6 +27,7 @@ export function LeaveManagementClient() {
   const isHR = user?.role === 'HR_MANAGER' || user?.role === 'SUPER_ADMIN' || user?.role === 'HR Admin' || user?.role === 'HR_ADMIN';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuotasModalOpen, setIsQuotasModalOpen] = useState(false);
   const [isHolidayModalOpen, setIsHolidayModalOpen] = useState(false);
   const [selectedHoliday, setSelectedHoliday] = useState<any>(null);
   const [filters, setFilters] = useState({ search: '', status: 'ALL', leaveType: 'ALL', department: 'ALL' });
@@ -132,22 +133,22 @@ export function LeaveManagementClient() {
         title={t("Leave Management")} 
         description={isHR ? t("Manage all employee leave requests and balances.") : t("Manage your leave requests and balances.")}
         actionButton={
-          <Button onClick={() => setIsModalOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" /> {t("Request Leave")}
-          </Button>
+          <div className="flex items-center gap-3">
+            {isHR && (
+              <Button onClick={() => setIsQuotasModalOpen(true)} variant="outline" className="gap-2 bg-white dark:bg-slate-900 text-gray-700 border-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800/50">
+                <Settings2 className="w-4 h-4 text-gray-500 dark:text-slate-400" /> {t("Manage Quotas")}
+              </Button>
+            )}
+            <Button onClick={() => setIsModalOpen(true)} className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+              <Plus className="w-4 h-4" /> {t("Request Leave")}
+            </Button>
+          </div>
         }
         showSearch={false}
       />
 
-      <div className="flex flex-col xl:flex-row gap-6 w-full">
-        <div className="flex-1 min-w-[300px]">
-          <LeaveKPICards metrics={summaryData?.metrics} loading={isLoadingSummary} />
-        </div>
-        {!isHR && (
-          <div className="flex-1 min-w-[300px]">
-            <LeaveBalanceCards balances={summaryData?.balances} loading={isLoadingSummary} />
-          </div>
-        )}
+      <div className="w-full">
+        <LeaveKPICards metrics={summaryData?.metrics} balances={summaryData?.balances || summaryData?.quotas} isHR={isHR} loading={isLoadingSummary} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">
@@ -200,6 +201,11 @@ export function LeaveManagementClient() {
         onSubmit={(data) => addHolidayMutation.mutate(data)}
         isLoading={addHolidayMutation.isPending}
         initialData={selectedHoliday}
+      />
+
+      <ManageLeaveQuotasModal 
+        isOpen={isQuotasModalOpen}
+        onClose={() => setIsQuotasModalOpen(false)}
       />
     </div>
   );

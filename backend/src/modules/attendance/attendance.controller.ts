@@ -17,25 +17,49 @@ export const getStatus = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const employee = await prisma.employee.findUnique({ where: { userId } });
-    if (!employee) return res.status(404).json(new ApiResponse(false, "Employee profile not found"));
+    if (!employee) {
+      return res.status(200).json(new ApiResponse(true, "Not an employee", { 
+        status: "NOT_PUNCHED_IN",
+        currentState: "NOT_PUNCHED_IN",
+        isEmployee: false,
+        shift: null
+      }));
+    }
 
     const today = getTodayDate();
     const record = await prisma.attendanceRecord.findUnique({
       where: { employeeId_date: { employeeId: employee.id, date: today } },
-      include: { logs: true, breaks: true }
+      include: { logs: true, breaks: true, shift: true }
     });
 
+    let shift = null;
+
     if (!record) {
-      return res.status(200).json(new ApiResponse(true, "Success", { status: "NOT_PUNCHED_IN" }));
+      const empWithShift = await prisma.employee.findUnique({ where: { id: employee.id }, include: { shift: true } });
+      shift = empWithShift?.shift;
+      return res.status(200).json(new ApiResponse(true, "Success", { 
+        status: "NOT_PUNCHED_IN",
+        currentState: "NOT_PUNCHED_IN",
+        shift
+      }));
     }
 
+    shift = record.shift;
+
     // Determine current live state
+    const hasLogs = record.logs && record.logs.length > 0;
     const openLog = record.logs.find(l => !l.punchOut);
     const openBreak = record.breaks.find(b => !b.breakEnd);
 
+    let currentState = "NOT_PUNCHED_IN";
+    if (hasLogs) {
+      currentState = openBreak ? "ON_BREAK" : (openLog ? "PUNCHED_IN" : "PUNCHED_OUT");
+    }
+
     return res.status(200).json(new ApiResponse(true, "Success", {
       record,
-      currentState: openBreak ? "ON_BREAK" : (openLog ? "PUNCHED_IN" : "PUNCHED_OUT")
+      shift,
+      currentState
     }));
   } catch (error: any) {
     return res.status(500).json(new ApiResponse(false, error.message));
@@ -335,10 +359,9 @@ export const getMySummary = async (req: Request, res: Response) => {
     if (!employee) return res.status(404).json(new ApiResponse(false, "Employee profile not found"));
 
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
     const records = await prisma.attendanceRecord.findMany({
-      where: { employeeId: employee.id, date: { gte: startOfMonth } }
+      where: { employeeId: employee.id }
     });
 
     let presentDays = 0;
